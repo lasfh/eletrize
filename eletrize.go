@@ -59,19 +59,19 @@ func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 		log.Fatalln(err)
 	}
 
-	watcher, err := watcher.NewWatcher(s.Watcher)
+	w, err := watcher.NewWatcher(s.Watcher)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	defer watcher.Close()
+	defer w.Close()
 
-	watcher.WatcherEvents(func(event fsnotify.Event) {
+	w.WatcherEvents(func(event fsnotify.Event) {
 		logOutput.PushlnLabel(output.LabelEletrize, "MODIFIED FILE:", event.Name)
 
 		s.Command.SendEvent(event.Name)
 	})
 
-	watcher.Start()
-	watcher.Wait()
+	_ = w.Start()
+	w.Wait()
 }

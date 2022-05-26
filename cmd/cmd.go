@@ -74,7 +74,7 @@ func (c *Command) startProcess() {
 		c.output.PushlnLabel(c.schemaName, scanner.Text())
 	}
 
-	cmd.Wait()
+	_ = cmd.Wait()
 }
 
 func (c *Command) WatchEvent(cmd *exec.Cmd) {
