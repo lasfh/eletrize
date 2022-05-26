@@ -56,12 +56,12 @@ func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	defer wg.Done()
 
 	if err := s.Command.Start(s.Name, s.Env, logOutput); err != nil {
-		log.Panicln(err)
+		log.Fatalln(err)
 	}
 
 	watcher, err := watcher.NewWatcher(s.Watcher)
 	if err != nil {
-		log.Panic(err)
+		log.Fatalln(err)
 	}
 
 	defer watcher.Close()
@@ -73,6 +73,5 @@ func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	})
 
 	watcher.Start()
-
 	watcher.Wait()
 }
