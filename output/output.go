@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"sync"
+	"time"
 )
 
 const LabelEletrize = "ELETRIZE"
@@ -52,10 +53,13 @@ func (o *Output) PushlnLabel(label string, v ...any) {
 func (o *Output) valuesToPush(label string, v ...any) []any {
 	colorAttr := color.BgBlue
 	if label == LabelEletrize {
-		colorAttr = color.BgGreen
+		colorAttr = color.BgMagenta
 	}
 
-	values := []any{color.New(colorAttr).Sprint(label)}
+	values := []any{
+		color.New(color.BgCyan).Sprint("[" + time.Now().Format("2006-01-02 15:04:05") + "]"),
+		color.New(colorAttr).Sprint("[" + label + "]"),
+	}
 
 	return append(values, v...)
 }
