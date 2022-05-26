@@ -3,25 +3,27 @@ package cmd
 import (
 	"bufio"
 	"errors"
-	"fmt"
+	"github.com/gabriellasaro/eletrize/output"
 	"log"
 	"os"
 	"os/exec"
 )
 
 type Command struct {
-	Name      string   `json:"name"`
-	Args      []string `json:"args"`
-	env       Env
-	event     chan string
-	eventKill chan string
+	Name       string   `json:"name"`
+	Args       []string `json:"args"`
+	env        Env
+	event      chan string
+	eventKill  chan string
+	schemaName string
+	output     *output.Output
 }
 
 func (c *Command) SendEvent(name string) {
 	c.event <- name
 }
 
-func (c *Command) Start(env Env) error {
+func (c *Command) Start(schemaName string, env Env, logOutput *output.Output) error {
 	if c.Name == "" {
 		return errors.New("specify a program to run")
 	}
@@ -29,6 +31,8 @@ func (c *Command) Start(env Env) error {
 	c.env = env
 	c.event = make(chan string)
 	c.eventKill = make(chan string)
+	c.schemaName = schemaName
+	c.output = logOutput
 
 	c.observer()
 
@@ -67,8 +71,7 @@ func (c *Command) startProcess() {
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		m := scanner.Text()
-		fmt.Println(m)
+		c.output.PushlnLabel(c.schemaName, scanner.Text())
 	}
 
 	cmd.Wait()
@@ -77,10 +80,10 @@ func (c *Command) startProcess() {
 func (c *Command) WatchEvent(cmd *exec.Cmd) {
 	go func() {
 		for e := range c.eventKill {
-			log.Println("KILL EVENT BY:", e, "PID:", cmd.Process.Pid)
+			c.output.PushlnLabel(output.LabelEletrize, "KILL EVENT BY:", e, "PID:", cmd.Process.Pid)
 
 			if err := cmd.Process.Kill(); err != nil {
-				log.Println("ERROR MESSAGE WHEN KILLING PROCESS:", err)
+				c.output.PushlnLabel(output.LabelEletrize, "ERROR MESSAGE WHEN KILLING PROCESS:", err)
 			}
 
 			return

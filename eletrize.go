@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gabriellasaro/eletrize/cmd"
+	"github.com/gabriellasaro/eletrize/output"
 	"github.com/gabriellasaro/eletrize/watcher"
 	"log"
 	"os"
@@ -38,19 +39,23 @@ func NewEletrize(path string) (*Eletrize, error) {
 func (e *Eletrize) Start() {
 	wg := sync.WaitGroup{}
 
+	logOutput := output.NewOutput()
+	logOutput.Print()
+
 	for i := 0; i < len(e.Schema); i++ {
 		wg.Add(1)
 
-		go e.Schema[i].start(&wg)
+		go e.Schema[i].start(&wg, logOutput)
 	}
 
 	wg.Wait()
+	logOutput.Wait()
 }
 
-func (s *Schema) start(wg *sync.WaitGroup) {
+func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	defer wg.Done()
 
-	if err := s.Command.Start(s.Env); err != nil {
+	if err := s.Command.Start(s.Name, s.Env, logOutput); err != nil {
 		log.Panicln(err)
 	}
 
@@ -62,7 +67,7 @@ func (s *Schema) start(wg *sync.WaitGroup) {
 	defer watcher.Close()
 
 	watcher.WatcherEvents(func(event fsnotify.Event) {
-		log.Println("MODIFIED FILE:", event.Name)
+		logOutput.PushlnLabel(output.LabelEletrize, "MODIFIED FILE:", event.Name)
 
 		s.Command.SendEvent(event.Name)
 	})
