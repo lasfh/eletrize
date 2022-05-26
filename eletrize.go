@@ -15,10 +15,10 @@ type Eletrize struct {
 }
 
 type Schema struct {
-	Name    string            `json:"name"`
-	Env     map[string]string `json:"env"`
-	Watcher watcher.Options   `json:"watcher"`
-	Command cmd.Command       `json:"command"`
+	Name    string          `json:"name"`
+	Env     cmd.Env         `json:"env"`
+	Watcher watcher.Options `json:"watcher"`
+	Command cmd.Command     `json:"command"`
 }
 
 func NewEletrize(path string) (*Eletrize, error) {
@@ -38,10 +38,10 @@ func NewEletrize(path string) (*Eletrize, error) {
 func (e *Eletrize) Start() {
 	wg := sync.WaitGroup{}
 
-	for _, s := range e.Schema {
+	for i := 0; i < len(e.Schema); i++ {
 		wg.Add(1)
 
-		go s.start(&wg)
+		go e.Schema[i].start(&wg)
 	}
 
 	wg.Wait()
@@ -50,7 +50,7 @@ func (e *Eletrize) Start() {
 func (s *Schema) start(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if err := s.Command.Start(); err != nil {
+	if err := s.Command.Start(s.Env); err != nil {
 		log.Panicln(err)
 	}
 

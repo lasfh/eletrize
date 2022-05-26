@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 )
 
 type Command struct {
 	Name      string   `json:"name"`
 	Args      []string `json:"args"`
+	env       Env
 	event     chan string
 	eventKill chan string
 }
@@ -19,11 +21,12 @@ func (c *Command) SendEvent(name string) {
 	c.event <- name
 }
 
-func (c *Command) Start() error {
+func (c *Command) Start(env Env) error {
 	if c.Name == "" {
 		return errors.New("specify a program to run")
 	}
 
+	c.env = env
 	c.event = make(chan string)
 	c.eventKill = make(chan string)
 
@@ -46,6 +49,8 @@ func (c *Command) observer() {
 
 func (c *Command) startProcess() {
 	cmd := exec.Command(c.Name, c.Args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, c.env.Variables()...)
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
