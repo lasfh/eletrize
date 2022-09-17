@@ -21,11 +21,15 @@ $ eletrize eletrize.json
         ]
       },
       "commands": {
+        "build": {
+          "method": "go",
+          "args": ["build"]
+        },
         "run": [
           {
             "name": "WORKER",
-            "method": "go",
-            "args": ["run", "main.go"],
+            "method": "./worker",
+            "args": [],
             "envs": []
           }
         ]
