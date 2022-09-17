@@ -8,7 +8,7 @@ $ eletrize eletrize.json
 {
   "schema": [
     {
-      "name": "SCHEMA NAME",
+      "label": "SCHEMA NAME",
       "envs": {
         "key": "value"
       },
@@ -27,7 +27,7 @@ $ eletrize eletrize.json
         },
         "run": [
           {
-            "name": "WORKER",
+            "label": "WORKER",
             "method": "./worker",
             "args": [],
             "envs": []

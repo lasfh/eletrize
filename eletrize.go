@@ -17,7 +17,7 @@ type Eletrize struct {
 }
 
 type Schema struct {
-	Name     string          `json:"name"`
+	Label    output.Label    `json:"label"`
 	Envs     cmd.Envs        `json:"envs"`
 	Watcher  watcher.Options `json:"watcher"`
 	Commands cmd.Commands    `json:"commands"`
@@ -56,7 +56,7 @@ func (e *Eletrize) Start() {
 func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	defer wg.Done()
 
-	if err := s.Commands.Start(s.Name, s.Envs, logOutput); err != nil {
+	if err := s.Commands.Start(s.Label, s.Envs, logOutput); err != nil {
 		log.Fatalln(err)
 	}
 

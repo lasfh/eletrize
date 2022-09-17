@@ -13,12 +13,12 @@ var (
 )
 
 type Commands struct {
-	schemaName string
-	Build      *Command
-	Run        []Command
-	output     *output.Output
-	event      chan string
-	eventKill  chan string
+	label     output.Label
+	Build     *BuildCommand
+	Run       []Command
+	output    *output.Output
+	event     chan string
+	eventKill chan string
 }
 
 func (c *Commands) isValidCommands() error {
@@ -41,13 +41,13 @@ func (c *Commands) isValidCommands() error {
 	return nil
 }
 
-func (c *Commands) prepareCommands(schemaName string, envs Envs, out *output.Output) {
+func (c *Commands) prepareCommands(label output.Label, envs Envs, out *output.Output) {
 	if c.Build != nil {
-		c.Build.prepareCommand(schemaName, envs, out)
+		c.Build.prepareCommand(label, envs, out)
 	}
 
 	for i := range c.Run {
-		c.Run[i].prepareCommand(schemaName, envs, out)
+		c.Run[i].prepareCommand(label, envs, out)
 	}
 }
 
@@ -55,13 +55,13 @@ func (c *Commands) SendEvent(name string) {
 	c.event <- name
 }
 
-func (c *Commands) Start(schemaName string, envs Envs, out *output.Output) error {
+func (c *Commands) Start(label output.Label, envs Envs, out *output.Output) error {
 	if err := c.isValidCommands(); err != nil {
 		return err
 	}
 
-	c.prepareCommands(schemaName, envs, out)
-	c.schemaName = schemaName
+	c.prepareCommands(label, envs, out)
+	c.label = label
 	c.output = out
 	c.event = make(chan string)
 	c.eventKill = make(chan string)
@@ -72,18 +72,26 @@ func (c *Commands) Start(schemaName string, envs Envs, out *output.Output) error
 	return nil
 }
 
-func (c *Commands) startBuild() {
+func (c *Commands) startBuild() error {
 	if c.Build != nil {
-		c.output.PushlnLabel(output.LabelBuild, "PROCESSING... "+c.schemaName)
+		c.output.PushlnLabel(output.LabelBuild.Add(c.label), "PROCESSING... ")
 
-		c.Build.startProcess()
+		if err := c.Build.startProcess(); err != nil {
+			c.output.PushlnLabel(output.LabelBuild.Add(c.label), "FAILED:", err)
 
-		c.output.PushlnLabel(output.LabelBuild, c.schemaName+" -> DONE")
+			return err
+		}
+
+		c.output.PushlnLabel(output.LabelBuild.Add(c.label), "DONE")
 	}
+
+	return nil
 }
 
 func (c *Commands) cancelProcesses(event string) {
-	c.startBuild()
+	if err := c.startBuild(); err != nil {
+		return
+	}
 
 	for i := range c.Run {
 		c.Run[i].eventKill <- event
@@ -91,7 +99,9 @@ func (c *Commands) cancelProcesses(event string) {
 }
 
 func (c *Commands) startProcesses() {
-	c.startBuild()
+	if err := c.startBuild(); err != nil {
+		return
+	}
 
 	for i := range c.Run {
 		go c.Run[i].startProcess()

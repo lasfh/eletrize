@@ -2,16 +2,23 @@ package output
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/fatih/color"
 )
 
+type Label string
+
 const (
-	LabelEletrize = "ELETRIZE"
-	LabelBuild    = "BUILD"
+	LabelEletrize Label = "ELETRIZE"
+	LabelBuild    Label = "BUILD"
 )
+
+func (l Label) Add(label Label) Label {
+	return l + " - " + label
+}
 
 type Output struct {
 	wg    *sync.WaitGroup
@@ -46,19 +53,19 @@ func (o *Output) Pushln(v ...any) {
 	o.write <- fmt.Sprintln(v...)
 }
 
-func (o *Output) PushLabel(label string, v ...any) {
+func (o *Output) PushLabel(label Label, v ...any) {
 	o.Push(o.valuesToPush(label, v...)...)
 }
 
-func (o *Output) PushlnLabel(label string, v ...any) {
+func (o *Output) PushlnLabel(label Label, v ...any) {
 	o.Pushln(o.valuesToPush(label, v...)...)
 }
 
-func (o *Output) valuesToPush(label string, v ...any) []any {
+func (o *Output) valuesToPush(label Label, v ...any) []any {
 	colorAttr := color.BgBlue
-	if label == LabelEletrize {
+	if strings.Contains(string(label), string(LabelEletrize)) {
 		colorAttr = color.BgMagenta
-	} else if label == LabelBuild {
+	} else if strings.Contains(string(label), string(LabelBuild)) {
 		colorAttr = color.BgRed
 	}
 

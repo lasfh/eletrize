@@ -12,19 +12,19 @@ import (
 )
 
 type Command struct {
-	schemaName string
-	Name       string   `json:"name"`
-	Method     string   `json:"method"`
-	Args       []string `json:"args"`
-	Envs       Envs     `json:"envs"`
+	label      output.Label
+	SubLabel   output.Label `json:"label"`
+	Method     string       `json:"method"`
+	Args       []string     `json:"args"`
+	Envs       Envs         `json:"envs"`
 	eventStart chan bool
 	eventKill  chan string
 	output     *output.Output
 }
 
-func (c *Command) isValidCommand(nameIsEmpty bool) error {
-	if !nameIsEmpty && strings.TrimSpace(c.Name) == "" {
-		return fmt.Errorf("name: %w", ErrCommandIsEmpty)
+func (c *Command) isValidCommand(subLabelIsEmpty bool) error {
+	if !subLabelIsEmpty && strings.TrimSpace(string(c.SubLabel)) == "" {
+		return fmt.Errorf("label: %w", ErrCommandIsEmpty)
 	}
 
 	if strings.TrimSpace(c.Method) == "" {
@@ -34,15 +34,15 @@ func (c *Command) isValidCommand(nameIsEmpty bool) error {
 	return nil
 }
 
-func (c *Command) prepareCommand(schemaName string, envs Envs, out *output.Output) {
-	c.schemaName = schemaName
+func (c *Command) prepareCommand(label output.Label, envs Envs, out *output.Output) {
+	c.label = label
 	c.Envs.IfNotExistAdd(envs)
 	c.eventStart = make(chan bool)
 	c.eventKill = make(chan string)
 	c.output = out
 }
 
-func (c *Command) startProcess() {
+func (c *Command) startProcess() error {
 	cmd := exec.Command(c.Method, c.Args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, c.Envs.Variables()...)
@@ -63,10 +63,10 @@ func (c *Command) startProcess() {
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		c.output.PushlnLabel(c.schemaName+" - "+c.Name, scanner.Text())
+		c.output.PushlnLabel(c.label.Add(c.SubLabel), scanner.Text())
 	}
 
-	_ = cmd.Wait()
+	return cmd.Wait()
 }
 
 func (c *Command) watchEventStart() {
