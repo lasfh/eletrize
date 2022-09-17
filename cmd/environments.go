@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-type Env map[string]string
+type Envs map[string]string
 
-func (e Env) Variables() []string {
+func (e Envs) Variables() []string {
 	vars := make([]string, 0)
 
 	for key, value := range e {
@@ -20,4 +20,12 @@ func (e Env) Variables() []string {
 	}
 
 	return vars
+}
+
+func (e Envs) IfNotExistAdd(envs Envs) {
+	for key, value := range envs {
+		if _, ok := e[key]; !ok {
+			e[key] = value
+		}
+	}
 }

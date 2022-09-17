@@ -9,7 +9,7 @@ $ eletrize eletrize.json
   "schema": [
     {
       "name": "SCHEMA NAME",
-      "env": {
+      "envs": {
         "key": "value"
       },
       "watcher": {
@@ -20,9 +20,15 @@ $ eletrize eletrize.json
           ".json"
         ]
       },
-      "command": {
-        "name": "go",
-        "args": ["run", "main.go"]
+      "commands": {
+        "run": [
+          {
+            "name": "WORKER",
+            "method": "go",
+            "args": ["run", "main.go"],
+            "envs": []
+          }
+        ]
       }
     }
   ]

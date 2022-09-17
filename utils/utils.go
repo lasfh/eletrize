@@ -5,7 +5,9 @@ func Contains[T comparable](list []T, name T) bool {
 		if item == name {
 			return true
 		}
+		
 	}
 
 	return false
 }
+

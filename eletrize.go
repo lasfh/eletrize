@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"log"
+	"os"
+	"sync"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/gabriellasaro/eletrize/cmd"
 	"github.com/gabriellasaro/eletrize/output"
 	"github.com/gabriellasaro/eletrize/watcher"
-	"log"
-	"os"
-	"sync"
 )
 
 type Eletrize struct {
@@ -16,10 +17,10 @@ type Eletrize struct {
 }
 
 type Schema struct {
-	Name    string          `json:"name"`
-	Env     cmd.Env         `json:"env"`
-	Watcher watcher.Options `json:"watcher"`
-	Command cmd.Command     `json:"command"`
+	Name     string          `json:"name"`
+	Envs     cmd.Envs        `json:"envs"`
+	Watcher  watcher.Options `json:"watcher"`
+	Commands cmd.Commands    `json:"commands"`
 }
 
 func NewEletrize(path string) (*Eletrize, error) {
@@ -55,7 +56,7 @@ func (e *Eletrize) Start() {
 func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	defer wg.Done()
 
-	if err := s.Command.Start(s.Name, s.Env, logOutput); err != nil {
+	if err := s.Commands.Start(s.Name, s.Envs, logOutput); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -69,7 +70,7 @@ func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	w.WatcherEvents(func(event fsnotify.Event) {
 		logOutput.PushlnLabel(output.LabelEletrize, "MODIFIED FILE:", event.Name)
 
-		s.Command.SendEvent(event.Name)
+		s.Commands.SendEvent(event.Name)
 	})
 
 	_ = w.Start()
