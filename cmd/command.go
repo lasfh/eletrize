@@ -22,8 +22,8 @@ type Command struct {
 	output     *output.Output
 }
 
-func (c *Command) isValidCommand() error {
-	if strings.TrimSpace(c.Name) == "" {
+func (c *Command) isValidCommand(nameIsEmpty bool) error {
+	if !nameIsEmpty && strings.TrimSpace(c.Name) == "" {
 		return fmt.Errorf("name: %w", ErrCommandIsEmpty)
 	}
 

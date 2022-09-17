@@ -2,12 +2,16 @@ package output
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"sync"
 	"time"
+
+	"github.com/fatih/color"
 )
 
-const LabelEletrize = "ELETRIZE"
+const (
+	LabelEletrize = "ELETRIZE"
+	LabelBuild    = "BUILD"
+)
 
 type Output struct {
 	wg    *sync.WaitGroup
@@ -54,6 +58,8 @@ func (o *Output) valuesToPush(label string, v ...any) []any {
 	colorAttr := color.BgBlue
 	if label == LabelEletrize {
 		colorAttr = color.BgMagenta
+	} else if label == LabelBuild {
+		colorAttr = color.BgRed
 	}
 
 	values := []any{

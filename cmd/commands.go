@@ -13,15 +13,17 @@ var (
 )
 
 type Commands struct {
-	Build     *Command
-	Run       []Command
-	event     chan string
-	eventKill chan string
+	schemaName string
+	Build      *Command
+	Run        []Command
+	output     *output.Output
+	event      chan string
+	eventKill  chan string
 }
 
 func (c *Commands) isValidCommands() error {
 	if c.Build != nil {
-		if err := c.Build.isValidCommand(); err != nil {
+		if err := c.Build.isValidCommand(true); err != nil {
 			return fmt.Errorf("build: %w", err)
 		}
 	}
@@ -31,7 +33,7 @@ func (c *Commands) isValidCommands() error {
 	}
 
 	for i := range c.Run {
-		if err := c.Run[i].isValidCommand(); err != nil {
+		if err := c.Run[i].isValidCommand(false); err != nil {
 			return fmt.Errorf("run[%d]: %w", i, err)
 		}
 	}
@@ -59,31 +61,47 @@ func (c *Commands) Start(schemaName string, envs Envs, out *output.Output) error
 	}
 
 	c.prepareCommands(schemaName, envs, out)
+	c.schemaName = schemaName
+	c.output = out
 	c.event = make(chan string)
 	c.eventKill = make(chan string)
 
-	c.startProcess()
+	c.startProcesses()
 	c.observerEvent()
 
 	return nil
 }
 
-func (c *Commands) cancelProcess(event string) {
+func (c *Commands) startBuild() {
+	if c.Build != nil {
+		c.output.PushlnLabel(output.LabelBuild, "PROCESSING... "+c.schemaName)
+
+		c.Build.startProcess()
+
+		c.output.PushlnLabel(output.LabelBuild, c.schemaName+" -> DONE")
+	}
+}
+
+func (c *Commands) cancelProcesses(event string) {
+	c.startBuild()
+
 	for i := range c.Run {
 		c.Run[i].eventKill <- event
 	}
 }
 
-func (c *Commands) startProcess() {
+func (c *Commands) startProcesses() {
+	c.startBuild()
+
 	for i := range c.Run {
-		c.Run[i].startProcess()
+		go c.Run[i].startProcess()
 	}
 }
 
 func (c *Commands) observerEvent() {
 	go func() {
 		for e := range c.event {
-			c.cancelProcess(e)
+			c.cancelProcesses(e)
 		}
 	}()
 }
