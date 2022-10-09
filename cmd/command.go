@@ -47,10 +47,12 @@ func (c *Command) startProcess() error {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, c.Envs.Variables()...)
 
-	stderr, err := cmd.StderrPipe()
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	cmd.Stderr = cmd.Stdout
 
 	if err := cmd.Start(); err != nil {
 		log.Fatalln(err)
@@ -59,7 +61,7 @@ func (c *Command) startProcess() error {
 	c.watchEventKill(cmd)
 	c.watchEventStart()
 
-	scanner := bufio.NewScanner(stderr)
+	scanner := bufio.NewScanner(stdout)
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
