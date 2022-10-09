@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
+	"time"
 
 	"github.com/gabriellasaro/eletrize/output"
 )
@@ -13,12 +15,14 @@ var (
 )
 
 type Commands struct {
-	label     output.Label
-	Build     *BuildCommand
-	Run       []Command
-	output    *output.Output
-	event     chan string
-	eventKill chan string
+	label        output.Label
+	Build        *BuildCommand
+	Run          []Command
+	output       *output.Output
+	event        chan string
+	eventKill    chan string
+	lastEvent    int64
+	waitingEvent int32
 }
 
 func (c *Commands) isValidCommands() error {
@@ -52,6 +56,31 @@ func (c *Commands) prepareCommands(label output.Label, envs Envs, out *output.Ou
 }
 
 func (c *Commands) SendEvent(name string) {
+	if atomic.LoadInt32(&c.waitingEvent) > 0 {
+		c.output.PushlnLabel(output.LabelEletrize, "EVENT:", name, "PROCESSING...")
+
+		return
+	}
+
+	// control many consecutive events
+	lastEvent := atomic.LoadInt64(&c.lastEvent)
+	if lastEvent > 0 && (time.Now().UnixMilli()-lastEvent) <= 2000 {
+		atomic.SwapInt32(&c.waitingEvent, 1)
+
+		go func(name string) {
+			time.Sleep(2 * time.Second)
+
+			atomic.SwapInt32(&c.waitingEvent, 0)
+			atomic.SwapInt64(&c.lastEvent, time.Now().UnixMilli())
+
+			c.event <- name
+		}(name)
+
+		return
+	}
+
+	atomic.SwapInt64(&c.lastEvent, time.Now().UnixMilli())
+
 	c.event <- name
 }
 
