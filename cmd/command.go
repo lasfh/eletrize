@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/gabriellasaro/eletrize/output"
+	"github.com/lasfh/eletrize/output"
 )
 
 type Command struct {

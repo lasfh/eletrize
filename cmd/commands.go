@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gabriellasaro/eletrize/output"
+	"github.com/lasfh/eletrize/output"
 )
 
 var (

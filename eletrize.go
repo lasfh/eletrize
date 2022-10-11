@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gabriellasaro/eletrize/cmd"
-	"github.com/gabriellasaro/eletrize/output"
-	"github.com/gabriellasaro/eletrize/watcher"
+	"github.com/lasfh/eletrize/cmd"
+	"github.com/lasfh/eletrize/output"
+	"github.com/lasfh/eletrize/watcher"
 )
 
 type Eletrize struct {

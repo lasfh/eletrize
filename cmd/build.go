@@ -1,6 +1,6 @@
 package cmd
 
-import "github.com/gabriellasaro/eletrize/output"
+import "github.com/lasfh/eletrize/output"
 
 type BuildCommand struct {
 	Command

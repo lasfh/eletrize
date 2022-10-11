@@ -1,4 +1,4 @@
-module github.com/gabriellasaro/eletrize
+module github.com/lasfh/eletrize
 
 go 1.18
 

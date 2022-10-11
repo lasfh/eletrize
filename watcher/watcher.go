@@ -1,14 +1,15 @@
 package watcher
 
 import (
-	"github.com/fsnotify/fsnotify"
-	"github.com/gabriellasaro/eletrize/utils"
 	"io/fs"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"sync"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/lasfh/eletrize/utils"
 )
 
 type Watcher struct {
