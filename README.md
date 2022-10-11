@@ -1,4 +1,4 @@
-# eletrize
+# eletrize - Golang live reload
 
 ```
 $ eletrize eletrize.json
