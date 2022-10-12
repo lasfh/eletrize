@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/lasfh/eletrize/notify"
 	"github.com/lasfh/eletrize/output"
 )
 
@@ -15,14 +16,15 @@ var (
 )
 
 type Commands struct {
-	label        output.Label
-	Build        *BuildCommand
-	Run          []Command
-	output       *output.Output
-	event        chan string
-	eventKill    chan string
-	lastEvent    int64
-	waitingEvent int32
+	label              output.Label
+	Build              *BuildCommand
+	Run                []Command
+	output             *output.Output
+	ignoreNotification bool
+	event              chan string
+	eventKill          chan string
+	lastEvent          int64
+	waitingEvent       int32
 }
 
 func (c *Commands) isValidCommands() error {
@@ -84,7 +86,12 @@ func (c *Commands) SendEvent(name string) {
 	c.event <- name
 }
 
-func (c *Commands) Start(label output.Label, envs Envs, out *output.Output) error {
+func (c *Commands) Start(
+	label output.Label,
+	envs Envs,
+	out *output.Output,
+	ignoreNotification bool,
+) error {
 	if err := c.isValidCommands(); err != nil {
 		return err
 	}
@@ -92,6 +99,7 @@ func (c *Commands) Start(label output.Label, envs Envs, out *output.Output) erro
 	c.prepareCommands(label, envs, out)
 	c.label = label
 	c.output = out
+	c.ignoreNotification = ignoreNotification
 	c.event = make(chan string)
 	c.eventKill = make(chan string)
 
@@ -107,6 +115,11 @@ func (c *Commands) startBuild() error {
 
 		if err := c.Build.startProcess(); err != nil {
 			c.output.PushlnLabel(output.LabelBuild.Add(c.label), "FAILED:", err)
+			notify.Send(
+				fmt.Sprintf("%s - BUILD FAILED", c.label),
+				err.Error(),
+				c.ignoreNotification,
+			)
 
 			return err
 		}

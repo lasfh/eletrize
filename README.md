@@ -9,6 +9,7 @@ $ eletrize eletrize.json
   "schema": [
     {
       "label": "SCHEMA NAME",
+      "ignore_notification": false,
       "envs": {
         "key": "value"
       },
