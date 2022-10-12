@@ -2,14 +2,26 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
+	"path"
 	"sync"
+
+	"golang.org/x/exp/slices"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/lasfh/eletrize/cmd"
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/watcher"
+)
+
+var (
+	ErrNotFound = errors.New("not found")
+
+	validFileNames = [...]string{
+		"eletrize.json", ".eletrize.json",
+	}
 )
 
 type Eletrize struct {
@@ -22,6 +34,35 @@ type Schema struct {
 	Envs               cmd.Envs        `json:"envs"`
 	Watcher            watcher.Options `json:"watcher"`
 	Commands           cmd.Commands    `json:"commands"`
+}
+
+func findEletrizeFileByPath(path string) (string, error) {
+	dirs, err := os.ReadDir(path)
+	if err != nil {
+		return "", err
+	}
+
+	for i := range dirs {
+		if !dirs[i].IsDir() && slices.Contains(validFileNames[:], dirs[i].Name()) {
+			return dirs[i].Name(), nil
+		}
+	}
+
+	return "", ErrNotFound
+}
+
+func NewEletrizeByFileInCW() (*Eletrize, error) {
+	p, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	filename, err := findEletrizeFileByPath(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewEletrize(path.Join(p, filename))
 }
 
 func NewEletrize(path string) (*Eletrize, error) {

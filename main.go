@@ -1,18 +1,30 @@
 package main
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"os"
 )
 
 func main() {
 	if len(os.Args) != 2 {
-		log.Fatalln("A [filename.json] argument was expected")
+		eletrize, err := NewEletrizeByFileInCW()
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				fmt.Printf("eletrize: file %q in current directory: %s\n", validFileNames, err.Error())
+				os.Exit(1)
+			}
+
+			panic(err)
+		}
+
+		eletrize.Start()
+		os.Exit(0)
 	}
 
 	eletrize, err := NewEletrize(os.Args[1])
 	if err != nil {
-		log.Panicln(err)
+		panic(err)
 	}
 
 	eletrize.Start()
