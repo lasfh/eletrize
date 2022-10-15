@@ -113,8 +113,11 @@ func (c *Commands) startBuild() error {
 	if c.Build != nil {
 		c.output.PushlnLabel(output.LabelBuild.Add(c.label), "PROCESSING... ")
 
+		startTime := time.Now()
+
 		if err := c.Build.startProcess(); err != nil {
 			c.output.PushlnLabel(output.LabelBuild.Add(c.label), "FAILED:", err)
+
 			notify.Send(
 				fmt.Sprintf("%s - BUILD FAILED", c.label),
 				err.Error(),
@@ -124,7 +127,10 @@ func (c *Commands) startBuild() error {
 			return err
 		}
 
-		c.output.PushlnLabel(output.LabelBuild.Add(c.label), "DONE")
+		c.output.PushlnLabel(
+			output.LabelBuild.Add(c.label),
+			fmt.Sprintf("DONE (%fs build time)", time.Since(startTime).Seconds()),
+		)
 	}
 
 	return nil
