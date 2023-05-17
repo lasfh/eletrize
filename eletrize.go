@@ -12,6 +12,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/lasfh/eletrize/cmd"
+	"github.com/lasfh/eletrize/environments"
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/watcher"
 )
@@ -29,11 +30,12 @@ type Eletrize struct {
 }
 
 type Schema struct {
-	Label              output.Label    `json:"label"`
-	IgnoreNotification bool            `json:"ignore_notification"`
-	Envs               cmd.Envs        `json:"envs"`
-	Watcher            watcher.Options `json:"watcher"`
-	Commands           cmd.Commands    `json:"commands"`
+	Label              output.Label      `json:"label"`
+	IgnoreNotification bool              `json:"ignore_notification"`
+	Envs               environments.Envs `json:"envs"`
+	EnvFile            string            `json:"env_file"`
+	Watcher            watcher.Options   `json:"watcher"`
+	Commands           cmd.Commands      `json:"commands"`
 }
 
 func findEletrizeFileByPath(path string) (string, error) {
@@ -97,6 +99,11 @@ func (e *Eletrize) Start() {
 
 func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	defer wg.Done()
+
+	if s.EnvFile != "" && s.Envs == nil {
+		s.Envs = make(environments.Envs)
+		s.Envs.ReadEnvFileAndMerge(s.EnvFile)
+	}
 
 	if err := s.Commands.Start(s.Label, s.Envs, logOutput, s.IgnoreNotification); err != nil {
 		log.Fatalln(err)

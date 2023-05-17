@@ -8,15 +8,17 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/lasfh/eletrize/environments"
 	"github.com/lasfh/eletrize/output"
 )
 
 type Command struct {
 	label      output.Label
-	SubLabel   output.Label `json:"label"`
-	Method     string       `json:"method"`
-	Args       []string     `json:"args"`
-	Envs       Envs         `json:"envs"`
+	SubLabel   output.Label      `json:"label"`
+	Method     string            `json:"method"`
+	Args       []string          `json:"args"`
+	Envs       environments.Envs `json:"envs"`
+	EnvFile    string            `json:"env_file"`
 	eventStart chan bool
 	eventKill  chan string
 	output     *output.Output
@@ -34,14 +36,21 @@ func (c *Command) isValidCommand(subLabelIsEmpty bool) error {
 	return nil
 }
 
-func (c *Command) prepareCommand(label output.Label, envs Envs, out *output.Output) {
+func (c *Command) prepareCommand(label output.Label, envs environments.Envs, out *output.Output) {
 	c.label = label
 
-	if envs != nil && c.Envs == nil {
-		c.Envs = make(Envs)
+	if c.Envs == nil && (envs != nil || c.EnvFile != "") {
+		c.Envs = make(environments.Envs)
 	}
 
-	c.Envs.IfNotExistAdd(envs)
+	if envs != nil {
+		c.Envs.IfNotExistAdd(envs)
+	}
+
+	if c.EnvFile != "" {
+		c.Envs.ReadEnvFileAndMerge(c.EnvFile)
+	}
+
 	c.eventStart = make(chan bool)
 	c.eventKill = make(chan string)
 	c.output = out

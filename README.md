@@ -13,6 +13,7 @@ $ eletrize eletrize.json
       "envs": {
         "key": "value"
       },
+      "env_file": ".env",
       "watcher": {
         "path": ".",
         "recursive": true,
@@ -25,14 +26,16 @@ $ eletrize eletrize.json
         "build": {
           "method": "go",
           "args": ["build"],
-          "envs": {}
+          "envs": {},
+          "env_file": "",
         },
         "run": [
           {
             "label": "WORKER",
             "method": "./worker",
             "args": [],
-            "envs": {}
+            "envs": {},
+            "env_file": "",
           }
         ]
       }

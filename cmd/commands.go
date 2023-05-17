@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/lasfh/eletrize/environments"
 	"github.com/lasfh/eletrize/notify"
 	"github.com/lasfh/eletrize/output"
 )
@@ -47,7 +48,7 @@ func (c *Commands) isValidCommands() error {
 	return nil
 }
 
-func (c *Commands) prepareCommands(label output.Label, envs Envs, out *output.Output) {
+func (c *Commands) prepareCommands(label output.Label, envs environments.Envs, out *output.Output) {
 	if c.Build != nil {
 		c.Build.prepareCommand(label, envs, out)
 	}
@@ -88,7 +89,7 @@ func (c *Commands) SendEvent(name string) {
 
 func (c *Commands) Start(
 	label output.Label,
-	envs Envs,
+	envs environments.Envs,
 	out *output.Output,
 	ignoreNotification bool,
 ) error {
