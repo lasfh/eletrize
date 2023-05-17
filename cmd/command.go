@@ -36,6 +36,11 @@ func (c *Command) isValidCommand(subLabelIsEmpty bool) error {
 
 func (c *Command) prepareCommand(label output.Label, envs Envs, out *output.Output) {
 	c.label = label
+
+	if envs != nil && c.Envs == nil {
+		c.Envs = make(Envs)
+	}
+
 	c.Envs.IfNotExistAdd(envs)
 	c.eventStart = make(chan bool)
 	c.eventKill = make(chan string)

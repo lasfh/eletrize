@@ -24,14 +24,15 @@ $ eletrize eletrize.json
       "commands": {
         "build": {
           "method": "go",
-          "args": ["build"]
+          "args": ["build"],
+          "envs": {}
         },
         "run": [
           {
             "label": "WORKER",
             "method": "./worker",
             "args": [],
-            "envs": []
+            "envs": {}
           }
         ]
       }

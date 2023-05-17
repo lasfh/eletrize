@@ -8,7 +8,7 @@ import (
 type Envs map[string]string
 
 func (e Envs) Variables() []string {
-	vars := make([]string, 0)
+	vars := make([]string, 0, len(e))
 
 	for key, value := range e {
 		value = strings.TrimSpace(value)
