@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/lasfh/eletrize/utils"
+	"golang.org/x/exp/slices"
 )
 
 type Watcher struct {
@@ -36,7 +36,7 @@ func (o *Options) MatchesExcludedPath(name string) bool {
 		name = path.Join(o.Path, name)
 	}
 
-	return utils.Contains(excludedPaths, name)
+	return slices.Contains(excludedPaths, name)
 }
 
 func (o *Options) MatchesExtensions(path string) bool {
@@ -44,7 +44,7 @@ func (o *Options) MatchesExtensions(path string) bool {
 		return true
 	}
 
-	return utils.Contains(o.Extensions, filepath.Ext(path))
+	return slices.Contains(o.Extensions, filepath.Ext(path))
 }
 
 func NewWatcher(options Options) (*Watcher, error) {
