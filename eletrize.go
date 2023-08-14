@@ -11,7 +11,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/lasfh/eletrize/cmd"
+	"github.com/lasfh/eletrize/command"
 	"github.com/lasfh/eletrize/environments"
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/watcher"
@@ -35,7 +35,7 @@ type Schema struct {
 	Envs               environments.Envs `json:"envs"`
 	EnvFile            string            `json:"env_file"`
 	Watcher            watcher.Options   `json:"watcher"`
-	Commands           cmd.Commands      `json:"commands"`
+	Commands           command.Commands  `json:"commands"`
 }
 
 func findEletrizeFileByPath(path string) (string, error) {

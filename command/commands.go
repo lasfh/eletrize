@@ -1,4 +1,4 @@
-package cmd
+package command
 
 import (
 	"errors"
@@ -24,8 +24,7 @@ type Commands struct {
 	ignoreNotification bool
 	event              chan string
 	eventKill          chan string
-	lastEvent          int64
-	waitingEvent       int32
+	pendingEvent       atomic.Bool
 }
 
 func (c *Commands) isValidCommands() error {
@@ -59,32 +58,16 @@ func (c *Commands) prepareCommands(label output.Label, envs environments.Envs, o
 }
 
 func (c *Commands) SendEvent(name string) {
-	if atomic.LoadInt32(&c.waitingEvent) > 0 {
-		c.output.PushlnLabel(output.LabelEletrize, "EVENT:", name, "PROCESSING...")
+	if !c.pendingEvent.Load() {
+		c.output.PushlnLabel(output.LabelEletrize, "PROCESSING REBUILD EVENT...")
 
-		return
-	}
+		c.pendingEvent.Store(true)
 
-	// control many consecutive events
-	lastEvent := atomic.LoadInt64(&c.lastEvent)
-	if lastEvent > 0 && (time.Now().UnixMilli()-lastEvent) <= 2000 {
-		atomic.SwapInt32(&c.waitingEvent, 1)
-
-		go func(name string) {
-			time.Sleep(2 * time.Second)
-
-			atomic.SwapInt32(&c.waitingEvent, 0)
-			atomic.SwapInt64(&c.lastEvent, time.Now().UnixMilli())
-
+		go func() {
+			time.Sleep(1800 * time.Millisecond)
 			c.event <- name
-		}(name)
-
-		return
+		}()
 	}
-
-	atomic.SwapInt64(&c.lastEvent, time.Now().UnixMilli())
-
-	c.event <- name
 }
 
 func (c *Commands) Start(
@@ -160,6 +143,7 @@ func (c *Commands) startProcesses() {
 func (c *Commands) observerEvent() {
 	go func() {
 		for e := range c.event {
+			c.pendingEvent.Store(false)
 			c.cancelProcesses(e)
 		}
 	}()
