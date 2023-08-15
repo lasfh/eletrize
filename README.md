@@ -1,9 +1,17 @@
-# eletrize - Golang live reload
+# eletrize - Golang Live Reload
+
+## Install
+```
+go install github.com/lasfh/eletrize@latest
+```
+
+## Run command
 
 ```
 $ eletrize eletrize.json
 ```
 
+## Configuration example
 ```
 {
   "schema": [
