@@ -5,6 +5,11 @@
 go install github.com/lasfh/eletrize@latest
 ```
 
+## Run simple command
+```
+$ eletrize run ./server "go build" --label="API"
+```
+
 ## Run command
 
 ```
