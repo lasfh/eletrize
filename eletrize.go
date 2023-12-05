@@ -116,7 +116,7 @@ func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	defer w.Close()
 
 	w.WatcherEvents(func(event fsnotify.Event) {
-		logOutput.PushlnLabel(output.LabelEletrize, "MODIFIED FILE:", event.Name)
+		logOutput.PushlnLabel(output.LabelWatcher, "MODIFIED FILE:", event.Name)
 
 		s.Commands.SendEvent(event.Name)
 	})

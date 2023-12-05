@@ -37,7 +37,7 @@ func (c *Commands) isValidCommands() error {
 	}
 
 	for i := range c.Run {
-		if err := c.Run[i].isValidCommand(false); err != nil {
+		if err := c.Run[i].isValidCommand(true); err != nil {
 			return fmt.Errorf("run[%d]: %w", i, err)
 		}
 	}

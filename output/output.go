@@ -13,10 +13,15 @@ type Label string
 
 const (
 	LabelEletrize Label = "ELETRIZE"
+	LabelWatcher  Label = "WATCHER"
 	LabelBuild    Label = "BUILD"
 )
 
 func (l Label) Add(label Label) Label {
+	if label == "" {
+		return l
+	}
+
 	return l + " - " + label
 }
 
@@ -63,7 +68,9 @@ func (o *Output) PushlnLabel(label Label, v ...any) {
 
 func (o *Output) valuesToPush(label Label, v ...any) []any {
 	colorAttr := color.BgBlue
-	if strings.Contains(string(label), string(LabelEletrize)) {
+	if strings.Contains(string(label), string(LabelWatcher)) {
+		colorAttr = color.BgHiYellow
+	} else if strings.Contains(string(label), string(LabelEletrize)) {
 		colorAttr = color.BgMagenta
 	} else if strings.Contains(string(label), string(LabelBuild)) {
 		colorAttr = color.BgRed
