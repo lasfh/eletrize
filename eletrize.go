@@ -26,10 +26,10 @@ var (
 )
 
 type Eletrize struct {
-	Schema []Schema `json:"schema"`
+	Scheme []Scheme `json:"scheme"`
 }
 
-type Schema struct {
+type Scheme struct {
 	Label    output.Label      `json:"label"`
 	Envs     environments.Envs `json:"envs"`
 	EnvFile  string            `json:"env_file"`
@@ -86,17 +86,17 @@ func (e *Eletrize) Start() {
 	logOutput := output.NewOutput()
 	logOutput.Print()
 
-	for i := 0; i < len(e.Schema); i++ {
+	for i := 0; i < len(e.Scheme); i++ {
 		wg.Add(1)
 
-		go e.Schema[i].start(&wg, logOutput)
+		go e.Scheme[i].start(&wg, logOutput)
 	}
 
 	wg.Wait()
 	logOutput.Wait()
 }
 
-func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
+func (s *Scheme) start(wg *sync.WaitGroup, logOutput *output.Output) {
 	defer wg.Done()
 
 	if s.EnvFile != "" && s.Envs == nil {
@@ -115,12 +115,13 @@ func (s *Schema) start(wg *sync.WaitGroup, logOutput *output.Output) {
 
 	defer w.Close()
 
+	if err := w.Start(); err != nil {
+		log.Fatalln(err)
+	}
+
 	w.WatcherEvents(func(event fsnotify.Event) {
 		logOutput.PushlnLabel(output.LabelWatcher, "MODIFIED FILE:", event.Name)
 
 		s.Commands.SendEvent(event.Name)
 	})
-
-	_ = w.Start()
-	w.Wait()
 }

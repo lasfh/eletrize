@@ -102,7 +102,7 @@ func runCommand() *cobra.Command {
 			}
 
 			eletrize := &Eletrize{
-				Schema: []Schema{
+				Scheme: []Scheme{
 					{
 						Label:   output.Label(label),
 						EnvFile: envFile,

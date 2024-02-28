@@ -6,14 +6,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 
 	"github.com/fsnotify/fsnotify"
 	"golang.org/x/exp/slices"
 )
 
 type Watcher struct {
-	wg      *sync.WaitGroup
 	notify  *fsnotify.Watcher
 	options Options
 }
@@ -54,7 +52,6 @@ func NewWatcher(options Options) (*Watcher, error) {
 	}
 
 	return &Watcher{
-		wg:      &sync.WaitGroup{},
 		notify:  notify,
 		options: options,
 	}, nil
@@ -95,20 +92,11 @@ func (w *Watcher) getDirectories(root string) (files []string, err error) {
 	return files, err
 }
 
-func (w *Watcher) Wait() {
-	w.wg.Wait()
-}
-
 func (w *Watcher) Close() error {
 	return w.notify.Close()
 }
 
 func (w *Watcher) WatcherEvents(watcherFunc func(event fsnotify.Event)) {
-	w.wg.Add(1)
-	go w.watcherEvents(watcherFunc)
-}
-
-func (w *Watcher) watcherEvents(watcherFunc func(event fsnotify.Event)) {
 	for {
 		select {
 		case event, ok := <-w.notify.Events:
