@@ -3,6 +3,8 @@ package command
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -17,6 +19,7 @@ var (
 
 type Commands struct {
 	label        output.Label
+	Workdir      string `json:"-" yaml:"-"`
 	Build        *BuildCommand
 	Run          []Command
 	output       *output.Output
@@ -89,7 +92,7 @@ func (c *Commands) Start(
 	return nil
 }
 
-func (c *Commands) startBuild() error {
+func (c *Commands) ifPresentRunBuild() error {
 	if c.Build != nil {
 		c.output.PushlnLabel(output.LabelBuild.Add(c.label), "PROCESSING... ")
 
@@ -111,7 +114,7 @@ func (c *Commands) startBuild() error {
 }
 
 func (c *Commands) cancelProcesses(event string) {
-	if err := c.startBuild(); err != nil {
+	if err := c.ifPresentRunBuild(); err != nil {
 		return
 	}
 
@@ -121,7 +124,13 @@ func (c *Commands) cancelProcesses(event string) {
 }
 
 func (c *Commands) startProcesses() {
-	if err := c.startBuild(); err != nil {
+	if c.Workdir != "" {
+		if err := os.Chdir(c.Workdir); err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	if err := c.ifPresentRunBuild(); err != nil {
 		return
 	}
 

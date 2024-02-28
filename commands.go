@@ -61,6 +61,7 @@ func runCommand() *cobra.Command {
 		recursive  bool
 		extensions []string
 		envFile    string
+		workdir    string
 	)
 
 	cmd := &cobra.Command{
@@ -113,8 +114,9 @@ func runCommand() *cobra.Command {
 							Extensions: extensions,
 						},
 						Commands: command.Commands{
-							Build: build,
-							Run:   []command.Command{run},
+							Workdir: workdir,
+							Build:   build,
+							Run:     []command.Command{run},
 						},
 					},
 				},
@@ -129,6 +131,7 @@ func runCommand() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&recursive, "recursive", "r", true, "Enable recursive mode for watching")
 	cmd.PersistentFlags().StringSliceVarP(&extensions, "ext", "e", []string{}, "Set file extensions to watch")
 	cmd.PersistentFlags().StringVarP(&envFile, "env", "", "", "Set the path to the environment file")
+	cmd.PersistentFlags().StringVarP(&workdir, "workdir", "", "", "Sets the working directory")
 
 	return cmd
 }
