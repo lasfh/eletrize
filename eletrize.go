@@ -10,11 +10,8 @@ import (
 
 	"golang.org/x/exp/slices"
 
-	"github.com/fsnotify/fsnotify"
-	"github.com/lasfh/eletrize/command"
-	"github.com/lasfh/eletrize/environments"
 	"github.com/lasfh/eletrize/output"
-	"github.com/lasfh/eletrize/watcher"
+	"github.com/lasfh/eletrize/scheme"
 )
 
 var (
@@ -26,15 +23,7 @@ var (
 )
 
 type Eletrize struct {
-	Scheme []Scheme `json:"scheme"`
-}
-
-type Scheme struct {
-	Label    output.Label      `json:"label"`
-	Envs     environments.Envs `json:"envs"`
-	EnvFile  string            `json:"env_file"`
-	Watcher  watcher.Options   `json:"watcher"`
-	Commands command.Commands  `json:"commands"`
+	Scheme []scheme.Scheme `json:"scheme" yaml:"scheme"`
 }
 
 func findEletrizeFileByPath(path string) (string, error) {
@@ -89,39 +78,15 @@ func (e *Eletrize) Start() {
 	for i := 0; i < len(e.Scheme); i++ {
 		wg.Add(1)
 
-		go e.Scheme[i].start(&wg, logOutput)
+		go func(index int) {
+			defer wg.Done()
+
+			if err := e.Scheme[index].Start(logOutput); err != nil {
+				log.Fatalln(err)
+			}
+		}(i)
 	}
 
 	wg.Wait()
 	logOutput.Wait()
-}
-
-func (s *Scheme) start(wg *sync.WaitGroup, logOutput *output.Output) {
-	defer wg.Done()
-
-	if s.EnvFile != "" && s.Envs == nil {
-		s.Envs = make(environments.Envs)
-		s.Envs.ReadEnvFileAndMerge(s.EnvFile)
-	}
-
-	if err := s.Commands.Start(s.Label, s.Envs, logOutput); err != nil {
-		log.Fatalln(err)
-	}
-
-	w, err := watcher.NewWatcher(s.Watcher)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	defer w.Close()
-
-	if err := w.Start(); err != nil {
-		log.Fatalln(err)
-	}
-
-	w.WatcherEvents(func(event fsnotify.Event) {
-		logOutput.PushlnLabel(output.LabelWatcher, "MODIFIED FILE:", event.Name)
-
-		s.Commands.SendEvent(event.Name)
-	})
 }

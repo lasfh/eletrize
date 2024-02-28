@@ -8,6 +8,7 @@ import (
 
 	"github.com/lasfh/eletrize/command"
 	"github.com/lasfh/eletrize/output"
+	"github.com/lasfh/eletrize/scheme"
 	"github.com/lasfh/eletrize/watcher"
 	"github.com/spf13/cobra"
 )
@@ -102,7 +103,7 @@ func runCommand() *cobra.Command {
 			}
 
 			eletrize := &Eletrize{
-				Scheme: []Scheme{
+				Scheme: []scheme.Scheme{
 					{
 						Label:   output.Label(label),
 						EnvFile: envFile,

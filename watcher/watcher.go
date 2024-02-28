@@ -17,10 +17,10 @@ type Watcher struct {
 }
 
 type Options struct {
-	Path          string   `json:"path"`
-	Recursive     bool     `json:"recursive"`
-	Extensions    []string `json:"extensions"`
-	ExcludedPaths []string `json:"excluded_paths"`
+	Path          string   `json:"path" yaml:"path"`
+	Recursive     bool     `json:"recursive" yaml:"recursive"`
+	Extensions    []string `json:"extensions" yaml:"extensions"`
+	ExcludedPaths []string `json:"excluded_paths" yaml:"excluded_paths"`
 }
 
 func (o *Options) MatchesExcludedPath(name string) bool {

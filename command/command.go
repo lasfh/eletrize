@@ -15,11 +15,11 @@ import (
 
 type Command struct {
 	label      output.Label
-	SubLabel   output.Label      `json:"label"`
-	Method     string            `json:"method"`
-	Args       []string          `json:"args"`
-	Envs       environments.Envs `json:"envs"`
-	EnvFile    string            `json:"env_file"`
+	SubLabel   output.Label      `json:"label" yaml:"label"`
+	Method     string            `json:"method" yaml:"method"`
+	Args       []string          `json:"args" yaml:"args"`
+	Envs       environments.Envs `json:"envs" yaml:"envs"`
+	EnvFile    string            `json:"env_file" yaml:"env_file"`
 	eventStart chan bool
 	eventKill  chan string
 	output     *output.Output
