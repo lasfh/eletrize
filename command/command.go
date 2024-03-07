@@ -14,15 +14,15 @@ import (
 )
 
 type Command struct {
-	label      output.Label
-	SubLabel   output.Label      `json:"label" yaml:"label"`
-	Method     string            `json:"method" yaml:"method"`
-	Args       []string          `json:"args" yaml:"args"`
 	Envs       environments.Envs `json:"envs" yaml:"envs"`
-	EnvFile    string            `json:"env_file" yaml:"env_file"`
 	eventStart chan bool
 	eventKill  chan string
 	output     *output.Output
+	label      output.Label
+	SubLabel   output.Label `json:"label" yaml:"label"`
+	Method     string       `json:"method" yaml:"method"`
+	EnvFile    string       `json:"env_file" yaml:"env_file"`
+	Args       []string     `json:"args" yaml:"args"`
 }
 
 func (c *Command) isValidCommand(subLabelIsEmpty bool) error {

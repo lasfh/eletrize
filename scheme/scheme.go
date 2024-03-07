@@ -9,11 +9,11 @@ import (
 )
 
 type Scheme struct {
-	Label    output.Label      `json:"label" yaml:"label"`
 	Envs     environments.Envs `json:"envs" yaml:"envs"`
+	Commands command.Commands  `json:"commands" yaml:"commands"`
+	Label    output.Label      `json:"label" yaml:"label"`
 	EnvFile  string            `json:"env_file" yaml:"env_file"`
 	Watcher  watcher.Options   `json:"watcher" yaml:"watcher"`
-	Commands command.Commands  `json:"commands" yaml:"commands"`
 }
 
 func (s *Scheme) Start(logOutput *output.Output) error {
