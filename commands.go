@@ -1,14 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/lasfh/eletrize/command"
 	"github.com/lasfh/eletrize/output"
-	"github.com/lasfh/eletrize/scheme"
+	"github.com/lasfh/eletrize/schema"
 	"github.com/lasfh/eletrize/watcher"
 	"github.com/spf13/cobra"
 )
@@ -24,12 +23,8 @@ var rootCmd = &cobra.Command{
 		if len(args) == 0 {
 			eletrize, err := NewEletrizeByFileInCW()
 			if err != nil {
-				if errors.Is(err, ErrNotFound) {
-					fmt.Printf("eletrize: none of these files %q were found.\n", validFileNames)
-					os.Exit(1)
-				}
-
-				panic(err)
+				fmt.Printf("eletrize: %s\n", err.Error())
+				os.Exit(1)
 			}
 
 			eletrize.Start()
@@ -104,7 +99,7 @@ func runCommand() *cobra.Command {
 			}
 
 			eletrize := &Eletrize{
-				Scheme: []scheme.Scheme{
+				Schema: []schema.Schema{
 					{
 						Label:   output.Label(label),
 						EnvFile: envFile,

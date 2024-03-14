@@ -19,9 +19,9 @@ $ eletrize eletrize.json
 ## Configuration example
 ```
 {
-  "scheme": [
+  "schema": [
     {
-      "label": "SCHEME NAME",
+      "label": "SCHEMA NAME",
       "envs": {
         "key": "value"
       },

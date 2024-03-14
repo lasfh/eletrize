@@ -2,28 +2,25 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path"
 	"sync"
 
-	"golang.org/x/exp/slices"
-
 	"github.com/lasfh/eletrize/output"
-	"github.com/lasfh/eletrize/scheme"
+	"github.com/lasfh/eletrize/schema"
+	"golang.org/x/exp/slices"
 )
 
-var (
-	ErrNotFound = errors.New("not found")
-
-	validFileNames = [...]string{
-		"eletrize.json", ".eletrize.json",
-	}
-)
+var validFileNames = [...]string{
+	".eletrize", ".eletrize.yml",
+	".eletrize.yaml", "eletrize.yml", "eletrize.yaml",
+	"eletrize.json", ".eletrize.json",
+}
 
 type Eletrize struct {
-	Scheme []scheme.Scheme `json:"scheme" yaml:"scheme"`
+	Schema []schema.Schema `json:"schema" yaml:"schema"`
 }
 
 func findEletrizeFileByPath(path string) (string, error) {
@@ -38,7 +35,7 @@ func findEletrizeFileByPath(path string) (string, error) {
 		}
 	}
 
-	return "", ErrNotFound
+	return "", fmt.Errorf("none of these files %q were found", validFileNames)
 }
 
 func NewEletrizeByFileInCW() (*Eletrize, error) {
@@ -62,8 +59,13 @@ func NewEletrize(path string) (*Eletrize, error) {
 	}
 
 	var eletrize Eletrize
+
 	if err := json.Unmarshal(content, &eletrize); err != nil {
 		return nil, err
+	}
+
+	if len(eletrize.Schema) == 0 {
+		return nil, fmt.Errorf("no schema was found for '%s'", path)
 	}
 
 	return &eletrize, nil
@@ -75,13 +77,13 @@ func (e *Eletrize) Start() {
 	logOutput := output.NewOutput()
 	logOutput.Print()
 
-	for i := 0; i < len(e.Scheme); i++ {
+	for i := 0; i < len(e.Schema); i++ {
 		wg.Add(1)
 
 		go func(index int) {
 			defer wg.Done()
 
-			if err := e.Scheme[index].Start(logOutput); err != nil {
+			if err := e.Schema[index].Start(logOutput); err != nil {
 				log.Fatalln(err)
 			}
 		}(i)

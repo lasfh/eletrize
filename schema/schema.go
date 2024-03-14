@@ -1,4 +1,4 @@
-package scheme
+package schema
 
 import (
 	"github.com/fsnotify/fsnotify"
@@ -8,7 +8,7 @@ import (
 	"github.com/lasfh/eletrize/watcher"
 )
 
-type Scheme struct {
+type Schema struct {
 	Envs     environments.Envs `json:"envs" yaml:"envs"`
 	Commands command.Commands  `json:"commands" yaml:"commands"`
 	Label    output.Label      `json:"label" yaml:"label"`
@@ -16,7 +16,7 @@ type Scheme struct {
 	Watcher  watcher.Options   `json:"watcher" yaml:"watcher"`
 }
 
-func (s *Scheme) Start(logOutput *output.Output) error {
+func (s *Schema) Start(logOutput *output.Output) error {
 	if s.EnvFile != "" && s.Envs == nil {
 		s.Envs = make(environments.Envs)
 		s.Envs.ReadEnvFileAndMerge(s.EnvFile)
