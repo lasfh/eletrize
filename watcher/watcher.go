@@ -110,7 +110,7 @@ func (w *Watcher) WatcherEvents(watcherFunc func(event fsnotify.Event)) {
 				}
 			}
 
-			if event.Op&fsnotify.Write == fsnotify.Write {
+			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 				if w.options.MatchesExtensions(event.Name) {
 					watcherFunc(event)
 				}
