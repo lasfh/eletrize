@@ -117,6 +117,7 @@ func runCommand() *cobra.Command {
 				Schema: []schema.Schema{
 					{
 						Label:   output.Label(label),
+						Workdir: workdir,
 						EnvFile: envFile,
 						Watcher: watcher.Options{
 							Path:       path,
@@ -124,9 +125,8 @@ func runCommand() *cobra.Command {
 							Extensions: extensions,
 						},
 						Commands: command.Commands{
-							Workdir: workdir,
-							Build:   build,
-							Run:     []command.Command{run},
+							Build: build,
+							Run:   []command.Command{run},
 						},
 					},
 				},

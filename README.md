@@ -28,6 +28,7 @@ $ eletrize --schema=NUMBER (>= 1)
   "schema": [
     {
       "label": "SCHEMA NAME",
+      "workdir": "",
       "envs": {
         "key": "value"
       },
@@ -41,7 +42,6 @@ $ eletrize --schema=NUMBER (>= 1)
         ]
       },
       "commands": {
-        "workdir": "",
         "build": {
           "method": "go",
           "args": ["build"],

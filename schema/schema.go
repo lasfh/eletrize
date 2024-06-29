@@ -1,7 +1,11 @@
 package schema
 
 import (
+	"log"
+	"os"
+
 	"github.com/fsnotify/fsnotify"
+
 	"github.com/lasfh/eletrize/command"
 	"github.com/lasfh/eletrize/environments"
 	"github.com/lasfh/eletrize/output"
@@ -12,11 +16,18 @@ type Schema struct {
 	Envs     environments.Envs `json:"envs" yaml:"envs"`
 	Commands command.Commands  `json:"commands" yaml:"commands"`
 	Label    output.Label      `json:"label" yaml:"label"`
+	Workdir  string            `json:"workdir" yaml:"workdir"`
 	EnvFile  string            `json:"env_file" yaml:"env_file"`
 	Watcher  watcher.Options   `json:"watcher" yaml:"watcher"`
 }
 
 func (s *Schema) Start(logOutput *output.Output) error {
+	if s.Workdir != "" {
+		if err := os.Chdir(s.Workdir); err != nil {
+			log.Fatalln(err)
+		}
+	}
+
 	if s.EnvFile != "" && s.Envs == nil {
 		s.Envs = make(environments.Envs)
 		s.Envs.ReadEnvFileAndMerge(s.EnvFile)

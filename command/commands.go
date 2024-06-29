@@ -3,8 +3,6 @@ package command
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -23,7 +21,6 @@ type Commands struct {
 	event        chan string
 	eventKill    chan string
 	label        output.Label
-	Workdir      string    `json:"workdir" yaml:"workdir"`
 	Run          []Command `json:"run" yaml:"run"`
 	pendingEvent atomic.Bool
 }
@@ -124,12 +121,6 @@ func (c *Commands) cancelProcesses(event string) {
 }
 
 func (c *Commands) startProcesses() {
-	if c.Workdir != "" {
-		if err := os.Chdir(c.Workdir); err != nil {
-			log.Fatalln(err)
-		}
-	}
-
 	if err := c.ifPresentRunBuild(); err != nil {
 		return
 	}
