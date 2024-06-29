@@ -3,14 +3,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path"
 	"sync"
 
+	"github.com/creack/pty"
+	"golang.org/x/exp/slices"
+
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
-	"golang.org/x/exp/slices"
 )
 
 var validFileNames = [...]string{
@@ -71,24 +75,71 @@ func NewEletrize(path string) (*Eletrize, error) {
 	return &eletrize, nil
 }
 
-func (e *Eletrize) Start() {
-	wg := sync.WaitGroup{}
+func (e *Eletrize) Start(schema ...uint16) {
+	if len(e.Schema) == 1 {
+		logOutput := output.NewOutput()
+		logOutput.Print()
 
-	logOutput := output.NewOutput()
-	logOutput.Print()
+		if err := e.Schema[0].Start(logOutput); err != nil {
+			log.Fatalln(err)
+		}
+
+		logOutput.Wait()
+
+		return
+	}
+
+	wg := sync.WaitGroup{}
 
 	for i := 0; i < len(e.Schema); i++ {
 		wg.Add(1)
 
 		go func(index int) {
-			defer wg.Done()
+			args := make([]string, 0, len(os.Args))
 
-			if err := e.Schema[index].Start(logOutput); err != nil {
-				log.Fatalln(err)
+			if len(os.Args) > 1 {
+				args = append(args, os.Args[1:]...)
 			}
+
+			args = append(args, fmt.Sprintf("--schema=%d", index+1))
+
+			cmd := exec.Command(os.Args[0], args...)
+
+			ptmx, err := pty.Start(cmd)
+			if err != nil {
+				log.Fatalf("PTY: %v", err)
+			}
+
+			defer func() { _ = ptmx.Close() }()
+
+			go func() {
+				if _, err := io.Copy(os.Stdout, ptmx); err != nil {
+					log.Fatalf("Error copying stdout: %v", err)
+				}
+			}()
+
+			cmd.Wait()
 		}(i)
 	}
 
 	wg.Wait()
+}
+
+func (e *Eletrize) StartFromSchema(schema uint16) error {
+	logOutput := output.NewOutput()
+	logOutput.Print()
+
+	index := schema - 1
+
+	if int(index) >= len(e.Schema) {
+		return fmt.Errorf("schema not found: %d", schema)
+	}
+
+	if err := e.Schema[index].Start(logOutput); err != nil {
+		log.Fatalln(err)
+	}
+
 	logOutput.Wait()
+
+	return nil
 }

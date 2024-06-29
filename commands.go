@@ -5,43 +5,58 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/lasfh/eletrize/command"
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
 	"github.com/lasfh/eletrize/watcher"
-	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "eletrize [filename]",
-	Short: "Live reload tool for Go and generic projects",
-	Long: `Eletrize is a live reload utility designed for Go projects and generic applications. 
-	It monitors changes in the specified directory and automatically triggers a reload, allowing for a dynamic and efficient development workflow.
-	Specify the [filename] argument to define the configuration file for Eletrize.`,
-	Args: cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			eletrize, err := NewEletrizeByFileInCW()
-			if err != nil {
-				fmt.Printf("eletrize: %s\n", err.Error())
-				os.Exit(1)
+func execute() error {
+	var schema uint16
+
+	rootCmd := &cobra.Command{
+		Use:   "eletrize [filename]",
+		Short: "Live reload tool for Go and generic projects",
+		Long: `Eletrize is a live reload utility designed for Go projects and generic applications. 
+		It monitors changes in the specified directory and automatically triggers a reload, allowing for a dynamic and efficient development workflow.
+		Specify the [filename] argument to define the configuration file for Eletrize.`,
+		Args: cobra.MaximumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			var (
+				eletrize *Eletrize
+				err      error
+			)
+
+			if len(args) == 0 {
+				eletrize, err = NewEletrizeByFileInCW()
+				if err != nil {
+					fmt.Printf("eletrize: %s\n", err.Error())
+					os.Exit(1)
+				}
+			} else {
+				eletrize, err = NewEletrize(args[0])
+				if err != nil {
+					fmt.Printf("eletrize: %s\n", err.Error())
+					os.Exit(1)
+				}
+			}
+
+			if schema > 0 {
+				if err = eletrize.StartFromSchema(schema); err != nil {
+					fmt.Printf("eletrize: %s\n", err.Error())
+					os.Exit(1)
+				}
+
+				os.Exit(0)
 			}
 
 			eletrize.Start()
-			os.Exit(0)
-		}
+		},
+	}
 
-		eletrize, err := NewEletrize(args[0])
-		if err != nil {
-			fmt.Printf("eletrize: %s\n", err.Error())
-			os.Exit(1)
-		}
-
-		eletrize.Start()
-	},
-}
-
-func execute() error {
+	rootCmd.Flags().Uint16VarP(&schema, "schema", "s", 0, "Execute a specific schema")
 	rootCmd.AddCommand(
 		runCommand(),
 	)

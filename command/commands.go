@@ -18,13 +18,13 @@ var (
 )
 
 type Commands struct {
-	Build        *BuildCommand
+	Build        *BuildCommand `json:"build" yaml:"build"`
 	output       *output.Output
 	event        chan string
 	eventKill    chan string
 	label        output.Label
-	Workdir      string `json:"-" yaml:"-"`
-	Run          []Command
+	Workdir      string    `json:"workdir" yaml:"workdir"`
+	Run          []Command `json:"run" yaml:"run"`
 	pendingEvent atomic.Bool
 }
 

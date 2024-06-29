@@ -7,13 +7,19 @@ go install github.com/lasfh/eletrize@latest
 
 ## Run simple command
 ```
-$ eletrize run ./server "go build" --label="API"
+$ eletrize run ./server "go build" --ext=.go --label="API" --env=.env
 ```
 
 ## Run command
 
 ```
 $ eletrize eletrize.json
+```
+
+## Run with specific schema
+
+```
+$ eletrize --schema=NUMBER (>= 1)
 ```
 
 ## Configuration example
@@ -35,6 +41,7 @@ $ eletrize eletrize.json
         ]
       },
       "commands": {
+        "workdir": "",
         "build": {
           "method": "go",
           "args": ["build"],
