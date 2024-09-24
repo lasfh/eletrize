@@ -1,6 +1,13 @@
-# eletrize - Golang Live Reload
+# Eletrize
+
+Live reload for Golang and others
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/lasfh/eletrize)](https://goreportcard.com/report/github.com/lasfh/eletrize)
 
 ## Install
+
+With go 1.18 or higher:
+
 ```
 go install github.com/lasfh/eletrize@latest
 ```
