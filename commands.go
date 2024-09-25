@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
+	"runtime/debug"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -12,6 +14,8 @@ import (
 	"github.com/lasfh/eletrize/schema"
 	"github.com/lasfh/eletrize/watcher"
 )
+
+var version = "unknown"
 
 func execute() error {
 	var schema uint16
@@ -59,6 +63,7 @@ func execute() error {
 	rootCmd.Flags().Uint16VarP(&schema, "schema", "s", 0, "Execute a specific schema")
 	rootCmd.AddCommand(
 		runCommand(),
+		versionCommand(),
 	)
 
 	return rootCmd.Execute()
@@ -140,6 +145,31 @@ func runCommand() *cobra.Command {
 	cmd.PersistentFlags().StringSliceVarP(&extensions, "ext", "e", []string{}, "Set file extensions to watch")
 	cmd.PersistentFlags().StringVarP(&envFile, "env", "", "", "Set the path to the environment file")
 	cmd.PersistentFlags().StringVarP(&workdir, "workdir", "", "", "Sets the working directory")
+
+	return cmd
+}
+
+func versionCommand() *cobra.Command {
+	var debugInfo bool
+
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Version and debug information.",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("Eletrize, version: %s (%s)\n", version, runtime.Version())
+
+			if !debugInfo {
+				return
+			}
+
+			if info, ok := debug.ReadBuildInfo(); ok {
+				fmt.Println("\nDebug info:", info.Main.Version)
+				fmt.Println(info)
+			}
+		},
+	}
+
+	cmd.PersistentFlags().BoolVarP(&debugInfo, "info", "i", false, "Debugging information")
 
 	return cmd
 }
