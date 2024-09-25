@@ -15,7 +15,7 @@ import (
 	"github.com/lasfh/eletrize/watcher"
 )
 
-var version = "unknown"
+var version string
 
 func execute() error {
 	var schema uint16
@@ -156,14 +156,12 @@ func versionCommand() *cobra.Command {
 		Use:   "version",
 		Short: "Version and debug information.",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Eletrize, version: %s (%s)\n", version, runtime.Version())
+			info, ok := debug.ReadBuildInfo()
 
-			if !debugInfo {
-				return
-			}
+			fmt.Printf("Eletrize, version: %s (%s)\n", getVersion(info), runtime.Version())
 
-			if info, ok := debug.ReadBuildInfo(); ok {
-				fmt.Println("\nDebug info:", info.Main.Version)
+			if debugInfo && ok {
+				fmt.Println("\nDebug info:")
 				fmt.Println(info)
 			}
 		},
@@ -172,4 +170,16 @@ func versionCommand() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&debugInfo, "info", "i", false, "Debugging information")
 
 	return cmd
+}
+
+func getVersion(info *debug.BuildInfo) string {
+	if version == "" {
+		if info != nil {
+			return info.Main.Version
+		}
+
+		return "(unknown)"
+	}
+
+	return version
 }
