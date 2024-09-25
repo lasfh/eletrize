@@ -6,9 +6,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 
 	"github.com/fsnotify/fsnotify"
-	"golang.org/x/exp/slices"
 )
 
 type Watcher struct {

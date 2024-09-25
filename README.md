@@ -6,7 +6,7 @@ Live reload for Golang and others
 
 ## Install
 
-With go 1.18 or higher:
+With go 1.23 or higher:
 
 ```
 go install github.com/lasfh/eletrize@latest

@@ -8,10 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"slices"
 	"sync"
 
 	"github.com/creack/pty"
-	"golang.org/x/exp/slices"
 
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
