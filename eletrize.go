@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"slices"
 	"sync"
 
 	"github.com/creack/pty"
+	"gopkg.in/yaml.v3"
 
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
@@ -57,19 +59,39 @@ func NewEletrizeByFileInCW() (*Eletrize, error) {
 }
 
 func NewEletrize(path string) (*Eletrize, error) {
-	content, err := os.ReadFile(path)
+	eletrize, err := loadAndDecodeFile(path)
 	if err != nil {
-		return nil, err
-	}
-
-	var eletrize Eletrize
-
-	if err := json.Unmarshal(content, &eletrize); err != nil {
 		return nil, err
 	}
 
 	if len(eletrize.Schema) == 0 {
 		return nil, fmt.Errorf("no schema was found for '%s'", path)
+	}
+
+	return eletrize, nil
+}
+
+func loadAndDecodeFile(path string) (*Eletrize, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	var eletrize Eletrize
+
+	switch ext := filepath.Ext(path); ext {
+	case ".json", ".eletrize":
+		err = json.NewDecoder(file).Decode(&eletrize)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		err = yaml.NewDecoder(file).Decode(&eletrize)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &eletrize, nil

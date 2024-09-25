@@ -19,52 +19,43 @@ $ eletrize run ./server "go build" --ext=.go --label="API" --env=.env
 
 ## Run command
 
+Detect files with names: eletrize.yml, eletrize.yaml, .eletrize.yml, .eletrize.yaml, eletrize.json, .eletrize.json and .eletrize (JSON format)'.
+
 ```
-$ eletrize eletrize.json
+$ eletrize eletrize.yml
 ```
 
 ## Run with specific schema
 
 ```
-$ eletrize --schema=NUMBER (>= 1)
+$ eletrize eletrize.yml --schema=NUMBER (>= 1)
 ```
 
-## Configuration example
+## Example configuration file
 ```
-{
-  "schema": [
-    {
-      "label": "SCHEMA NAME",
-      "workdir": "",
-      "envs": {
-        "key": "value"
-      },
-      "env_file": ".env",
-      "watcher": {
-        "path": ".",
-        "recursive": true,
-        "extensions": [
-          ".go",
-          ".json"
-        ]
-      },
-      "commands": {
-        "build": {
-          "method": "go",
-          "args": ["build"],
-          "envs": {},
-          "env_file": "",
-        },
-        "run": [
-          {
-            "label": "WORKER",
-            "method": "./worker",
-            "args": [],
-            "envs": {},
-            "env_file": "",
-          }
-        ]
-      }
-    }
-  ]
-}
+schema:
+  - label: SCHEMA NAME
+    workdir: ""
+    envs:
+      key: "value"
+    env_file: ".env"
+    watcher:
+      path: "."
+      recursive: true
+      extensions:
+        - ".go"
+        - ".js"
+    commands:
+      build:
+        method: "go"
+        args:
+          - "build"
+        envs:
+          key: "value"
+        env_file: ""
+      run:
+        - label: WORKER
+          method: "./worker"
+          envs:
+            key: "value"
+          env_file: ""

@@ -16,7 +16,7 @@ var (
 )
 
 type Commands struct {
-	Build        *BuildCommand `json:"build" yaml:"build"`
+	Build        *Command `json:"build" yaml:"build"`
 	output       *output.Output
 	event        chan string
 	eventKill    chan string
@@ -47,7 +47,8 @@ func (c *Commands) isValidCommands() error {
 
 func (c *Commands) prepareCommands(label output.Label, envs environments.Envs, out *output.Output) {
 	if c.Build != nil {
-		c.Build.prepareCommand(label, envs, out)
+		c.Build.prepareCommand(output.LabelBuild, envs, out)
+		c.Build.SubLabel = label
 	}
 
 	for i := range c.Run {

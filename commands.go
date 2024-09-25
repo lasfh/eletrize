@@ -82,7 +82,7 @@ func runCommand() *cobra.Command {
 		Args: cobra.RangeArgs(1, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			var (
-				build *command.BuildCommand
+				build *command.Command
 				run   command.Command
 			)
 
@@ -90,13 +90,11 @@ func runCommand() *cobra.Command {
 				// build command
 				parts := strings.Fields(args[1])
 
-				build = &command.BuildCommand{
-					Command: command.Command{
-						Method: strings.TrimSpace(
-							parts[0],
-						),
-						Args: []string{},
-					},
+				build = &command.Command{
+					Method: strings.TrimSpace(
+						parts[0],
+					),
+					Args: []string{},
 				}
 
 				if len(parts) > 1 {
