@@ -3,7 +3,6 @@ package command
 import (
 	"errors"
 	"fmt"
-	"sync/atomic"
 	"time"
 
 	"github.com/lasfh/eletrize/environments"
@@ -16,13 +15,36 @@ var (
 )
 
 type Commands struct {
-	Build        *Command `json:"build" yaml:"build"`
-	output       *output.Output
-	event        chan string
-	eventKill    chan string
-	label        output.Label
-	Run          []Command `json:"run" yaml:"run"`
-	pendingEvent atomic.Bool
+	Build                *Command `json:"build" yaml:"build"`
+	output               *output.Output
+	label                output.Label
+	Run                  []Command `json:"run" yaml:"run"`
+	debounceEventHandler func(string)
+}
+
+func (c *Commands) Start(
+	label output.Label,
+	envs environments.Envs,
+	out *output.Output,
+) error {
+	if err := c.isValidCommands(); err != nil {
+		return err
+	}
+
+	c.prepareCommands(label, envs, out)
+	c.label = label
+	c.output = out
+	c.debounceEventHandler = debounce(800*time.Millisecond, func(event string) {
+		c.cancelProcesses(event)
+	})
+
+	c.startProcesses()
+
+	return nil
+}
+
+func (c *Commands) SendEvent(name string) {
+	c.debounceEventHandler(name)
 }
 
 func (c *Commands) isValidCommands() error {
@@ -54,40 +76,6 @@ func (c *Commands) prepareCommands(label output.Label, envs environments.Envs, o
 	for i := range c.Run {
 		c.Run[i].prepareCommand(label, envs, out)
 	}
-}
-
-func (c *Commands) SendEvent(name string) {
-	if !c.pendingEvent.Load() {
-		c.output.PushlnLabel(output.LabelEletrize, "PROCESSING REBUILD EVENT...")
-
-		c.pendingEvent.Store(true)
-
-		go func() {
-			time.Sleep(1800 * time.Millisecond)
-			c.event <- name
-		}()
-	}
-}
-
-func (c *Commands) Start(
-	label output.Label,
-	envs environments.Envs,
-	out *output.Output,
-) error {
-	if err := c.isValidCommands(); err != nil {
-		return err
-	}
-
-	c.prepareCommands(label, envs, out)
-	c.label = label
-	c.output = out
-	c.event = make(chan string)
-	c.eventKill = make(chan string)
-
-	c.startProcesses()
-	c.observerEvent()
-
-	return nil
 }
 
 func (c *Commands) ifPresentRunBuild() error {
@@ -129,13 +117,4 @@ func (c *Commands) startProcesses() {
 	for i := range c.Run {
 		go c.Run[i].startProcess()
 	}
-}
-
-func (c *Commands) observerEvent() {
-	go func() {
-		for e := range c.event {
-			c.pendingEvent.Store(false)
-			c.cancelProcesses(e)
-		}
-	}()
 }
