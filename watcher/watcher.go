@@ -2,11 +2,11 @@ package watcher
 
 import (
 	"io/fs"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -24,17 +24,16 @@ type Options struct {
 }
 
 func (o *Options) MatchesExcludedPath(name string) bool {
-	excludedPaths := make([]string, len(o.ExcludedPaths))
-
-	for i := 0; i < len(o.ExcludedPaths); i++ {
-		excludedPaths[i] = path.Join(o.Path, o.ExcludedPaths[i])
+	if o.ExcludedPaths == nil {
+		return false
 	}
 
-	if o.Path == "." || o.Path == "./" {
-		name = path.Join(o.Path, name)
+	name = path.Join(o.Path, name)
+	if name == "." {
+		return false
 	}
 
-	return slices.Contains(excludedPaths, name)
+	return isPathOrSubpath(name, o.ExcludedPaths)
 }
 
 func (o *Options) MatchesExtensions(path string) bool {
@@ -45,11 +44,27 @@ func (o *Options) MatchesExtensions(path string) bool {
 	return slices.Contains(o.Extensions, filepath.Ext(path))
 }
 
+func (o *Options) prepareExcludedPaths() {
+	if o.ExcludedPaths == nil {
+		return
+	}
+
+	for i := 0; i < len(o.ExcludedPaths); i++ {
+		o.ExcludedPaths[i] = path.Join(o.Path, o.ExcludedPaths[i])
+	}
+}
+
 func NewWatcher(options Options) (*Watcher, error) {
 	notify, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
+
+	if options.Path == "" {
+		options.Path = "."
+	}
+
+	options.prepareExcludedPaths()
 
 	return &Watcher{
 		notify:  notify,
@@ -82,6 +97,10 @@ func (w *Watcher) addRecursively(root string) error {
 
 func (w *Watcher) getDirectories(root string) (files []string, err error) {
 	err = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if info.IsDir() && !w.options.MatchesExcludedPath(path) {
 			files = append(files, path)
 		}
@@ -96,12 +115,12 @@ func (w *Watcher) Close() error {
 	return w.notify.Close()
 }
 
-func (w *Watcher) WatcherEvents(watcherFunc func(event fsnotify.Event)) {
+func (w *Watcher) WatcherEvents(watcherFunc func(event fsnotify.Event)) error {
 	for {
 		select {
 		case event, ok := <-w.notify.Events:
 			if !ok {
-				return
+				continue
 			}
 
 			if (event.Op&fsnotify.Create == fsnotify.Create || fsnotify.Rename == event.Op&fsnotify.Rename) && isDir(event.Name) {
@@ -115,12 +134,8 @@ func (w *Watcher) WatcherEvents(watcherFunc func(event fsnotify.Event)) {
 					watcherFunc(event)
 				}
 			}
-		case err, ok := <-w.notify.Errors:
-			if !ok {
-				return
-			}
-
-			log.Fatalln(err)
+		case err := <-w.notify.Errors:
+			return err
 		}
 	}
 }
@@ -132,4 +147,14 @@ func isDir(name string) bool {
 	}
 
 	return dir.IsDir()
+}
+
+func isPathOrSubpath(target string, paths []string) bool {
+	for _, dir := range paths {
+		if strings.HasPrefix(target, dir) {
+			return true
+		}
+	}
+
+	return false
 }

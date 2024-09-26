@@ -42,6 +42,8 @@ schema:
     watcher:
       path: "."
       recursive: true
+      excluded_paths:
+        - "frontend"
       extensions:
         - ".go"
         - ".js"

@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"log"
 	"os"
 
 	"github.com/fsnotify/fsnotify"
@@ -24,17 +23,13 @@ type Schema struct {
 func (s *Schema) Start(logOutput *output.Output) error {
 	if s.Workdir != "" {
 		if err := os.Chdir(s.Workdir); err != nil {
-			log.Fatalln(err)
+			return err
 		}
 	}
 
 	if s.EnvFile != "" && s.Envs == nil {
 		s.Envs = make(environments.Envs)
 		s.Envs.ReadEnvFileAndMerge(s.EnvFile)
-	}
-
-	if err := s.Commands.Start(s.Label, s.Envs, logOutput); err != nil {
-		return err
 	}
 
 	w, err := watcher.NewWatcher(s.Watcher)
@@ -48,11 +43,13 @@ func (s *Schema) Start(logOutput *output.Output) error {
 		return err
 	}
 
-	w.WatcherEvents(func(event fsnotify.Event) {
+	if err := s.Commands.Start(s.Label, s.Envs, logOutput); err != nil {
+		return err
+	}
+
+	return w.WatcherEvents(func(event fsnotify.Event) {
 		logOutput.PushlnLabel(output.LabelWatcher, "MODIFIED FILE:", event.Name)
 
 		s.Commands.SendEvent(event.Name)
 	})
-
-	return nil
 }
