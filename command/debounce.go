@@ -5,11 +5,11 @@ import (
 	"time"
 )
 
-func debounce(delay time.Duration, fn func(string)) func(string) {
+func debounce(delay time.Duration, fn func()) func() {
 	var mu sync.Mutex
 	var timer *time.Timer
 
-	return func(event string) {
+	return func() {
 		mu.Lock()
 		defer mu.Unlock()
 
@@ -17,6 +17,6 @@ func debounce(delay time.Duration, fn func(string)) func(string) {
 			timer.Stop()
 		}
 
-		timer = time.AfterFunc(delay, func() { fn(event) })
+		timer = time.AfterFunc(delay, func() { fn() })
 	}
 }

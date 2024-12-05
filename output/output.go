@@ -1,90 +1,189 @@
 package output
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
-	"sync"
-	"time"
+	"os"
 
 	"github.com/fatih/color"
+	"gopkg.in/yaml.v3"
 )
 
-type Label string
+type Colors map[string]color.Attribute
 
-const (
-	LabelEletrize Label = "ELETRIZE"
-	LabelWatcher  Label = "WATCHER"
-	LabelBuild    Label = "BUILD"
+var colors = Colors{
+	"red":     color.FgRed,
+	"green":   color.FgGreen,
+	"yellow":  color.FgYellow,
+	"blue":    color.FgBlue,
+	"magenta": color.FgMagenta,
+	"cyan":    color.FgCyan,
+	"white":   color.FgWhite,
+}
+
+func (c Colors) Color(name string) color.Attribute {
+	if color, ok := colors[name]; ok {
+		return color
+	}
+
+	return color.FgGreen
+}
+
+type label struct {
+	Label string `json:"label" yaml:"label"`
+	Color string `json:"color" yaml:"color"`
+}
+
+type Label struct {
+	Label string `json:"label" yaml:"label"`
+	Color *color.Color
+}
+
+var (
+	LabelEletrize = &Label{
+		Label: "ELETRIZE",
+		Color: color.New(color.FgMagenta),
+	}
+	LabelWatcher = DefaultLabel{
+		Label: Label{
+			Label: "WATCHER",
+			Color: color.New(color.FgHiYellow),
+		},
+	}
+	LabelBuild = DefaultLabel{
+		Label: Label{
+			Label: "BUILD",
+			Color: color.New(color.FgRed),
+		},
+	}
 )
 
-func (l Label) Add(label Label) Label {
-	if label == "" {
+func (l *Label) UnmarshalYAML(value *yaml.Node) error {
+	if value.Value != "" || value.Content == nil {
+		var labelText string
+		if err := value.Decode(&labelText); err != nil {
+			return err
+		}
+
+		l.Label = labelText
+
+		return nil
+	}
+
+	var label label
+	if err := value.Decode(&label); err != nil {
+		return err
+	}
+
+	l.Label = label.Label
+	if label.Color != "" {
+		l.Color = color.New(
+			colors.Color(label.Color),
+		)
+	}
+
+	return nil
+}
+
+func (l *Label) UnmarshalJSON(data []byte) error {
+	if data[0] == '"' {
+		var labelText string
+		if err := json.Unmarshal(data, &labelText); err != nil {
+			return err
+		}
+
+		l.Label = labelText
+
+		return nil
+	}
+
+	var label label
+	if err := json.Unmarshal(data, &label); err != nil {
+		return err
+	}
+
+	l.Label = label.Label
+	if label.Color != "" {
+		l.Color = color.New(
+			colors.Color(label.Color),
+		)
+	}
+
+	return nil
+}
+
+func (l *Label) NewLabel(label *Label) *Label {
+	if (l == nil || l.Label == "") && (label == nil || label.Label == "") {
+		return nil
+	}
+
+	if l == nil || l.Label == "" {
+		if label.Color == nil {
+			label.Color = color.New(
+				color.FgGreen,
+			)
+		}
+
+		return label
+	}
+
+	if label == nil || label.Label == "" {
+		if l.Color == nil {
+			l.Color = color.New(
+				color.FgGreen,
+			)
+		}
+
 		return l
 	}
 
-	return l + " - " + label
-}
-
-type Output struct {
-	wg    *sync.WaitGroup
-	write chan string
-}
-
-func NewOutput() *Output {
-	return &Output{
-		wg:    &sync.WaitGroup{},
-		write: make(chan string),
-	}
-}
-
-func (o *Output) Print() {
-	o.wg.Add(1)
-	go o.print()
-}
-
-func (o *Output) print() {
-	defer o.wg.Done()
-
-	for line := range o.write {
-		fmt.Print(line)
-	}
-}
-
-func (o *Output) Push(v ...any) {
-	o.write <- fmt.Sprint(v...)
-}
-
-func (o *Output) Pushln(v ...any) {
-	o.write <- fmt.Sprintln(v...)
-}
-
-func (o *Output) PushLabel(label Label, v ...any) {
-	o.Push(o.valuesToPush(label, v...)...)
-}
-
-func (o *Output) PushlnLabel(label Label, v ...any) {
-	o.Pushln(o.valuesToPush(label, v...)...)
-}
-
-func (o *Output) valuesToPush(label Label, v ...any) []any {
-	colorAttr := color.BgBlue
-	if strings.Contains(string(label), string(LabelWatcher)) {
-		colorAttr = color.BgHiYellow
-	} else if strings.Contains(string(label), string(LabelEletrize)) {
-		colorAttr = color.BgMagenta
-	} else if strings.Contains(string(label), string(LabelBuild)) {
-		colorAttr = color.BgRed
+	if label.Label != "" {
+		label.Label = l.Label + " - " + label.Label
+	} else {
+		label.Label = l.Label
 	}
 
-	values := []any{
-		color.New(color.BgCyan).Sprint("[" + time.Now().Format("15:04:05") + "]"),
-		color.New(colorAttr).Sprint("[" + label + "]"),
+	if label.Color == nil {
+		if l.Color == nil {
+			label.Color = color.New(
+				color.FgGreen,
+			)
+
+			return label
+		}
+
+		label.Color = l.Color
 	}
 
-	return append(values, v...)
+	return label
 }
 
-func (o *Output) Wait() {
-	close(o.write)
-	o.wg.Wait()
+type DefaultLabel struct {
+	Label
+}
+
+func (l DefaultLabel) Sub(label *Label) *Label {
+	if label == nil || label.Label == "" {
+		return &l.Label
+	}
+
+	l.Label.Label = l.Label.Label + " - " + label.Label
+
+	return &l.Label
+}
+
+func Push(label *Label, output string) {
+	if label != nil {
+		label.Color.Fprintf(color.Output, "[%s] ", label.Label)
+	}
+
+	fmt.Fprintln(os.Stdout, output)
+}
+
+func Pushf(label *Label, format string, a ...any) {
+	if label != nil {
+		label.Color.Fprintf(color.Output, "[%s] ", label.Label)
+	}
+
+	fmt.Fprintf(os.Stdout, format, a...)
 }

@@ -119,7 +119,9 @@ func runCommand() *cobra.Command {
 			eletrize := &Eletrize{
 				Schema: []schema.Schema{
 					{
-						Label:   output.Label(label),
+						Label: &output.Label{
+							Label: label,
+						},
 						Workdir: workdir,
 						EnvFile: envFile,
 						Watcher: watcher.Options{
@@ -139,7 +141,7 @@ func runCommand() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVarP(&label, "label", "l", "APP", "Set the identification label")
+	cmd.PersistentFlags().StringVarP(&label, "label", "l", "", "Set the identification label")
 	cmd.PersistentFlags().StringVarP(&path, "path", "p", ".", "Set the path to watch for changes")
 	cmd.PersistentFlags().BoolVarP(&recursive, "recursive", "r", true, "Enable recursive mode for watching")
 	cmd.PersistentFlags().StringSliceVarP(&extensions, "ext", "e", []string{}, "Set file extensions to watch")

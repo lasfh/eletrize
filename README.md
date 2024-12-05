@@ -61,3 +61,16 @@ schema:
           envs:
             key: "value"
           env_file: ""
+```
+
+## Custom color for label
+
+Available colors: red, green, yellow, blue, magenta, cyan, white.
+
+```
+schema:
+  - label:
+      label: SCHEMA NAME
+      color: blue
+    ...
+```

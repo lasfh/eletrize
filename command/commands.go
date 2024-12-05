@@ -16,40 +16,35 @@ var (
 
 type Commands struct {
 	Build                *Command `json:"build" yaml:"build"`
-	output               *output.Output
-	label                output.Label
+	label                *output.Label
 	Run                  []Command `json:"run" yaml:"run"`
-	debounceEventHandler func(string)
+	debounceEventHandler func()
 }
 
 func (c *Commands) Start(
-	label output.Label,
+	label *output.Label,
 	envs environments.Envs,
-	out *output.Output,
 ) error {
 	if err := c.isValidCommands(); err != nil {
 		return err
 	}
 
-	c.prepareCommands(label, envs, out)
+	c.prepareCommands(label, envs)
 	c.label = label
-	c.output = out
-	c.debounceEventHandler = debounce(800*time.Millisecond, func(event string) {
-		c.cancelProcesses(event)
-	})
+	c.debounceEventHandler = debounce(800*time.Millisecond, c.cancelProcesses)
 
 	c.startProcesses()
 
 	return nil
 }
 
-func (c *Commands) SendEvent(name string) {
-	c.debounceEventHandler(name)
+func (c *Commands) SendEvent() {
+	c.debounceEventHandler()
 }
 
 func (c *Commands) isValidCommands() error {
 	if c.Build != nil {
-		if err := c.Build.isValidCommand(true); err != nil {
+		if err := c.Build.isValidCommand(); err != nil {
 			return fmt.Errorf("build: %w", err)
 		}
 	}
@@ -59,7 +54,7 @@ func (c *Commands) isValidCommands() error {
 	}
 
 	for i := range c.Run {
-		if err := c.Run[i].isValidCommand(true); err != nil {
+		if err := c.Run[i].isValidCommand(); err != nil {
 			return fmt.Errorf("run[%d]: %w", i, err)
 		}
 	}
@@ -67,45 +62,49 @@ func (c *Commands) isValidCommands() error {
 	return nil
 }
 
-func (c *Commands) prepareCommands(label output.Label, envs environments.Envs, out *output.Output) {
+func (c *Commands) prepareCommands(label *output.Label, envs environments.Envs) {
 	if c.Build != nil {
-		c.Build.prepareCommand(output.LabelBuild, envs, out)
-		c.Build.SubLabel = label
+		c.Build.prepareCommand(envs, func(c *Command) *output.Label {
+			return output.LabelBuild.Sub(label)
+		})
 	}
 
 	for i := range c.Run {
-		c.Run[i].prepareCommand(label, envs, out)
+		c.Run[i].prepareCommand(envs, func(c *Command) *output.Label {
+			return label.NewLabel(c.Label)
+		})
 	}
 }
 
 func (c *Commands) ifPresentRunBuild() error {
 	if c.Build != nil {
-		c.output.PushlnLabel(output.LabelBuild.Add(c.label), "PROCESSING... ")
+		output.Push(c.Build.Label, "PROCESSING... ")
 
 		startTime := time.Now()
 
 		if err := c.Build.startProcess(); err != nil {
-			c.output.PushlnLabel(output.LabelBuild.Add(c.label), "FAILED:", err)
+			output.Pushf(c.Build.Label, "FAILED: %s\n", err)
 
 			return err
 		}
 
-		c.output.PushlnLabel(
-			output.LabelBuild.Add(c.label),
-			fmt.Sprintf("DONE (%fs build time)", time.Since(startTime).Seconds()),
+		output.Pushf(
+			c.Build.Label,
+			"DONE (%fs build time)\n",
+			time.Since(startTime).Seconds(),
 		)
 	}
 
 	return nil
 }
 
-func (c *Commands) cancelProcesses(event string) {
+func (c *Commands) cancelProcesses() {
 	if err := c.ifPresentRunBuild(); err != nil {
 		return
 	}
 
 	for i := range c.Run {
-		c.Run[i].eventKill <- event
+		c.Run[i].eventKill <- struct{}{}
 	}
 }
 

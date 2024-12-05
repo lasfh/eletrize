@@ -15,21 +15,15 @@ import (
 
 type Command struct {
 	Envs       environments.Envs `json:"envs" yaml:"envs"`
-	eventStart chan bool
-	eventKill  chan string
-	output     *output.Output
-	label      output.Label
-	SubLabel   output.Label `json:"label" yaml:"label"`
-	Method     string       `json:"method" yaml:"method"`
-	EnvFile    string       `json:"env_file" yaml:"env_file"`
-	Args       []string     `json:"args" yaml:"args"`
+	eventStart chan struct{}
+	eventKill  chan struct{}
+	Label      *output.Label `json:"label" yaml:"label"`
+	Method     string        `json:"method" yaml:"method"`
+	EnvFile    string        `json:"env_file" yaml:"env_file"`
+	Args       []string      `json:"args" yaml:"args"`
 }
 
-func (c *Command) isValidCommand(subLabelIsEmpty bool) error {
-	if !subLabelIsEmpty && strings.TrimSpace(string(c.SubLabel)) == "" {
-		return fmt.Errorf("label: %w", ErrCommandIsEmpty)
-	}
-
+func (c *Command) isValidCommand() error {
 	if strings.TrimSpace(c.Method) == "" {
 		return fmt.Errorf("method: %w", ErrCommandIsEmpty)
 	}
@@ -37,8 +31,10 @@ func (c *Command) isValidCommand(subLabelIsEmpty bool) error {
 	return nil
 }
 
-func (c *Command) prepareCommand(label output.Label, envs environments.Envs, out *output.Output) {
-	c.label = label
+func (c *Command) prepareCommand(envs environments.Envs, setLabel ...func(c *Command) *output.Label) {
+	if setLabel != nil {
+		c.Label = setLabel[0](c)
+	}
 
 	if c.Envs == nil && (envs != nil || c.EnvFile != "") {
 		c.Envs = make(environments.Envs)
@@ -52,9 +48,8 @@ func (c *Command) prepareCommand(label output.Label, envs environments.Envs, out
 		c.Envs.ReadEnvFileAndMerge(c.EnvFile)
 	}
 
-	c.eventStart = make(chan bool)
-	c.eventKill = make(chan string)
-	c.output = out
+	c.eventStart = make(chan struct{})
+	c.eventKill = make(chan struct{})
 }
 
 func (c *Command) startProcess() error {
@@ -80,7 +75,7 @@ func (c *Command) startProcess() error {
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		c.output.PushlnLabel(c.label.Add(c.SubLabel), scanner.Text())
+		output.Push(c.Label, scanner.Text())
 	}
 
 	return cmd.Wait()
@@ -96,14 +91,12 @@ func (c *Command) watchEventStart() {
 
 func (c *Command) watchEventKill(cmd *exec.Cmd) {
 	go func() {
-		e := <-c.eventKill
-
-		c.output.PushlnLabel(output.LabelEletrize, "KILL EVENT BY:", e, "PID:", cmd.Process.Pid)
+		<-c.eventKill
 
 		if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
-			c.output.PushlnLabel(output.LabelEletrize, "ERROR MESSAGE WHEN KILLING PROCESS:", err)
+			output.Pushf(output.LabelEletrize, "ERROR MESSAGE WHEN KILLING PROCESS: %s\n", err)
 		}
 
-		c.eventStart <- true
+		c.eventStart <- struct{}{}
 	}()
 }

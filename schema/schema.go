@@ -14,13 +14,13 @@ import (
 type Schema struct {
 	Envs     environments.Envs `json:"envs" yaml:"envs"`
 	Commands command.Commands  `json:"commands" yaml:"commands"`
-	Label    output.Label      `json:"label" yaml:"label"`
+	Label    *output.Label     `json:"label" yaml:"label"`
 	Workdir  string            `json:"workdir" yaml:"workdir"`
 	EnvFile  string            `json:"env_file" yaml:"env_file"`
 	Watcher  watcher.Options   `json:"watcher" yaml:"watcher"`
 }
 
-func (s *Schema) Start(logOutput *output.Output) error {
+func (s *Schema) Start() error {
 	if s.Workdir != "" {
 		if err := os.Chdir(s.Workdir); err != nil {
 			return err
@@ -43,13 +43,15 @@ func (s *Schema) Start(logOutput *output.Output) error {
 		return err
 	}
 
-	if err := s.Commands.Start(s.Label, s.Envs, logOutput); err != nil {
+	if err := s.Commands.Start(s.Label, s.Envs); err != nil {
 		return err
 	}
 
-	return w.WatcherEvents(func(event fsnotify.Event) {
-		logOutput.PushlnLabel(output.LabelWatcher, "MODIFIED FILE:", event.Name)
+	labelWatcher := output.LabelWatcher.Sub(s.Label)
 
-		s.Commands.SendEvent(event.Name)
+	return w.WatcherEvents(func(event fsnotify.Event) {
+		output.Pushf(labelWatcher, "MODIFIED FILE: %s\n", event.Name)
+
+		s.Commands.SendEvent()
 	})
 }

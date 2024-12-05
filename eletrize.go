@@ -15,7 +15,6 @@ import (
 	"github.com/creack/pty"
 	"gopkg.in/yaml.v3"
 
-	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
 )
 
@@ -99,14 +98,9 @@ func loadAndDecodeFile(path string) (*Eletrize, error) {
 
 func (e *Eletrize) Start(schema ...uint16) {
 	if len(e.Schema) == 1 {
-		logOutput := output.NewOutput()
-		logOutput.Print()
-
-		if err := e.Schema[0].Start(logOutput); err != nil {
+		if err := e.Schema[0].Start(); err != nil {
 			log.Fatalln(err)
 		}
-
-		logOutput.Wait()
 
 		return
 	}
@@ -148,20 +142,15 @@ func (e *Eletrize) Start(schema ...uint16) {
 }
 
 func (e *Eletrize) StartFromSchema(schema uint16) error {
-	logOutput := output.NewOutput()
-	logOutput.Print()
-
 	index := schema - 1
 
 	if int(index) >= len(e.Schema) {
 		return fmt.Errorf("schema not found: %d", schema)
 	}
 
-	if err := e.Schema[index].Start(logOutput); err != nil {
+	if err := e.Schema[index].Start(); err != nil {
 		log.Fatalln(err)
 	}
-
-	logOutput.Wait()
 
 	return nil
 }
