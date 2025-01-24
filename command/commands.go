@@ -15,10 +15,10 @@ var (
 )
 
 type Commands struct {
-	Build                *Command `json:"build" yaml:"build"`
-	label                *output.Label
+	Build                *Command  `json:"build" yaml:"build"`
 	Run                  []Command `json:"run" yaml:"run"`
 	debounceEventHandler func()
+	labelBuild           *output.Label
 }
 
 func (c *Commands) Start(
@@ -29,9 +29,9 @@ func (c *Commands) Start(
 		return err
 	}
 
-	c.prepareCommands(label, envs)
-	c.label = label
+	c.prepareCommands(envs)
 	c.debounceEventHandler = debounce(800*time.Millisecond, c.cancelProcesses)
+	c.labelBuild = output.LabelBuild.Sub(label)
 
 	c.startProcesses()
 
@@ -40,6 +40,18 @@ func (c *Commands) Start(
 
 func (c *Commands) SendEvent() {
 	c.debounceEventHandler()
+}
+
+func (c *Commands) Quit() {
+	if c.Build.quitHandler != nil {
+		c.Build.quitHandler()
+	}
+
+	for i := range c.Run {
+		if c.Run[i].quitHandler != nil {
+			c.Run[i].quitHandler()
+		}
+	}
 }
 
 func (c *Commands) isValidCommands() error {
@@ -62,34 +74,30 @@ func (c *Commands) isValidCommands() error {
 	return nil
 }
 
-func (c *Commands) prepareCommands(label *output.Label, envs environments.Envs) {
+func (c *Commands) prepareCommands(envs environments.Envs) {
 	if c.Build != nil {
-		c.Build.prepareCommand(envs, func(c *Command) *output.Label {
-			return output.LabelBuild.Sub(label)
-		})
+		c.Build.prepareCommand(envs)
 	}
 
 	for i := range c.Run {
-		c.Run[i].prepareCommand(envs, func(c *Command) *output.Label {
-			return label.NewLabel(c.Label)
-		})
+		c.Run[i].prepareCommand(envs)
 	}
 }
 
 func (c *Commands) ifPresentRunBuild() error {
 	if c.Build != nil {
-		output.Push(c.Build.Label, "PROCESSING... ")
+		output.Push(c.labelBuild, "PROCESSING... ")
 
 		startTime := time.Now()
 
 		if err := c.Build.startProcess(); err != nil {
-			output.Pushf(c.Build.Label, "FAILED: %s\n", err)
+			output.Pushf(c.labelBuild, "FAILED: %s\n", err)
 
 			return err
 		}
 
 		output.Pushf(
-			c.Build.Label,
+			c.labelBuild,
 			"DONE (%fs build time)\n",
 			time.Since(startTime).Seconds(),
 		)

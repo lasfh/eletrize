@@ -34,25 +34,18 @@ func execute() error {
 			)
 
 			if len(args) == 0 {
-				eletrize, err = NewEletrizeByFileInCW()
-				if err != nil {
-					fmt.Printf("eletrize: %s\n", err.Error())
-					os.Exit(1)
-				}
+				eletrize, err = NewEletrizeFromWD()
 			} else {
-				eletrize, err = NewEletrize(args[0])
-				if err != nil {
-					fmt.Printf("eletrize: %s\n", err.Error())
-					os.Exit(1)
-				}
+				eletrize, err = NewEletrizeFromPath(args[0])
+			}
+
+			if err != nil {
+				fmt.Printf("eletrize: %s\n", err.Error())
+				os.Exit(1)
 			}
 
 			if schema > 0 {
-				if err = eletrize.StartFromSchema(schema); err != nil {
-					fmt.Printf("eletrize: %s\n", err.Error())
-					os.Exit(1)
-				}
-
+				eletrize.Start(schema)
 				os.Exit(0)
 			}
 

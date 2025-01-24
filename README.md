@@ -19,10 +19,18 @@ $ eletrize run ./server "go build" --ext=.go --label="API" --env=.env
 
 ## Run command
 
-Detect files with names: eletrize.yml, eletrize.yaml, .eletrize.yml, .eletrize.yaml, eletrize.json, .eletrize.json and .eletrize (JSON format)'.
+Autodetect Golang projects or Eletrize configuration files with names:
+eletrize.yml, eletrize.yaml, .eletrize.yml, .eletrize.yaml,
+eletrize.json, .eletrize.json and .eletrize (JSON format).
 
 ```
-$ eletrize eletrize.yml
+$ eletrize
+```
+
+or
+
+```
+$ eletrize path/eletrize.yml
 ```
 
 ## Run with specific schema
@@ -35,7 +43,7 @@ $ eletrize eletrize.yml --schema=NUMBER (>= 1)
 ```
 schema:
   - label: SCHEMA NAME
-    workdir: ""
+    workdir: "path"
     envs:
       key: "value"
     env_file: ".env"
@@ -56,8 +64,7 @@ schema:
           key: "value"
         env_file: ""
       run:
-        - label: WORKER
-          method: "./worker"
+        - method: "./worker"
           envs:
             key: "value"
           env_file: ""

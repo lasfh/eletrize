@@ -1,8 +1,6 @@
 package command
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,13 +12,12 @@ import (
 )
 
 type Command struct {
-	Envs       environments.Envs `json:"envs" yaml:"envs"`
-	eventStart chan struct{}
-	eventKill  chan struct{}
-	Label      *output.Label `json:"label" yaml:"label"`
-	Method     string        `json:"method" yaml:"method"`
-	EnvFile    string        `json:"env_file" yaml:"env_file"`
-	Args       []string      `json:"args" yaml:"args"`
+	Envs        environments.Envs `json:"envs" yaml:"envs"`
+	eventKill   chan struct{}
+	quitHandler func()
+	Method      string   `json:"method" yaml:"method"`
+	EnvFile     string   `json:"env_file" yaml:"env_file"`
+	Args        []string `json:"args" yaml:"args"`
 }
 
 func (c *Command) isValidCommand() error {
@@ -31,11 +28,7 @@ func (c *Command) isValidCommand() error {
 	return nil
 }
 
-func (c *Command) prepareCommand(envs environments.Envs, setLabel ...func(c *Command) *output.Label) {
-	if setLabel != nil {
-		c.Label = setLabel[0](c)
-	}
-
+func (c *Command) prepareCommand(envs environments.Envs) {
 	if c.Envs == nil && (envs != nil || c.EnvFile != "") {
 		c.Envs = make(environments.Envs)
 	}
@@ -48,55 +41,36 @@ func (c *Command) prepareCommand(envs environments.Envs, setLabel ...func(c *Com
 		c.Envs.ReadEnvFileAndMerge(c.EnvFile)
 	}
 
-	c.eventStart = make(chan struct{})
 	c.eventKill = make(chan struct{})
 }
 
 func (c *Command) startProcess() error {
-	cmd := exec.Command(c.Method, c.Args...)
+	cmd := startProcess(c.Method, c.Args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, c.Envs.Variables()...)
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	cmd.Stderr = cmd.Stdout
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
 		log.Fatalln(err)
 	}
 
 	c.watchEventKill(cmd)
-	c.watchEventStart()
-
-	scanner := bufio.NewScanner(stdout)
-	scanner.Split(bufio.ScanLines)
-
-	for scanner.Scan() {
-		output.Push(c.Label, scanner.Text())
+	c.quitHandler = func() {
+		_ = KillProcess(cmd)
 	}
 
 	return cmd.Wait()
-}
-
-func (c *Command) watchEventStart() {
-	go func() {
-		<-c.eventStart
-
-		c.startProcess()
-	}()
 }
 
 func (c *Command) watchEventKill(cmd *exec.Cmd) {
 	go func() {
 		<-c.eventKill
 
-		if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		if err := KillProcess(cmd); err != nil {
 			output.Pushf(output.LabelEletrize, "ERROR MESSAGE WHEN KILLING PROCESS: %s\n", err)
 		}
 
-		c.eventStart <- struct{}{}
+		c.startProcess()
 	}()
 }

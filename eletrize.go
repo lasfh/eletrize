@@ -7,64 +7,81 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path"
 	"path/filepath"
-	"slices"
 	"sync"
+	"sync/atomic"
+	"syscall"
 
 	"github.com/creack/pty"
 	"gopkg.in/yaml.v3"
 
+	"github.com/lasfh/eletrize/command"
+	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
 )
-
-var validFileNames = [...]string{
-	".eletrize", ".eletrize.yml",
-	".eletrize.yaml", "eletrize.yml", "eletrize.yaml",
-	"eletrize.json", ".eletrize.json",
-}
 
 type Eletrize struct {
 	Schema []schema.Schema `json:"schema" yaml:"schema"`
 }
 
-func findEletrizeFileByPath(path string) (string, error) {
+func NewEletrizeFromWD() (*Eletrize, error) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	return newEletrizeFromDirectory(currentDir)
+}
+
+func newEletrizeFromDirectory(path string) (*Eletrize, error) {
 	dirs, err := os.ReadDir(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	for i := range dirs {
-		if !dirs[i].IsDir() && slices.Contains(validFileNames[:], dirs[i].Name()) {
-			return dirs[i].Name(), nil
+	filename, err := findEletrizeConfigFile(dirs)
+	if err != nil {
+		if isGoProject(dirs) {
+			return runGoProject(path)
 		}
+
+		return nil, err
 	}
 
-	return "", fmt.Errorf("none of these files %q were found", validFileNames)
+	return NewEletrizeFromFilePath(
+		filepath.Join(path, filename),
+	)
 }
 
-func NewEletrizeByFileInCW() (*Eletrize, error) {
-	p, err := os.Getwd()
+func NewEletrizeFromPath(path string) (*Eletrize, error) {
+	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
 
-	filename, err := findEletrizeFileByPath(p)
-	if err != nil {
-		return nil, err
+	if info.IsDir() {
+		return newEletrizeFromDirectory(path)
 	}
 
-	return NewEletrize(path.Join(p, filename))
+	return NewEletrizeFromFilePath(path)
 }
 
-func NewEletrize(path string) (*Eletrize, error) {
-	eletrize, err := loadAndDecodeFile(path)
+func NewEletrizeFromFilePath(filePath string) (*Eletrize, error) {
+	eletrize, err := loadAndDecodeFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(eletrize.Schema) == 0 {
-		return nil, fmt.Errorf("no schema was found for '%s'", path)
+		return nil, fmt.Errorf("no schema was found for '%s'", filePath)
+	}
+
+	for index := range eletrize.Schema {
+		if eletrize.Schema[index].Workdir == "" {
+			eletrize.Schema[index].Workdir = path.Dir(filePath)
+		}
 	}
 
 	return eletrize, nil
@@ -97,20 +114,64 @@ func loadAndDecodeFile(path string) (*Eletrize, error) {
 }
 
 func (e *Eletrize) Start(schema ...uint16) {
-	if len(e.Schema) == 1 {
-		if err := e.Schema[0].Start(); err != nil {
-			log.Fatalln(err)
-		}
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	if schema == nil && len(e.Schema) > 1 {
+		e.startAll(signalChan)
 
 		return
 	}
 
-	wg := sync.WaitGroup{}
+	var index uint16
+
+	if schema != nil {
+		index = schema[0] - 1
+
+		if int(index) >= len(e.Schema) {
+			log.Fatalf("schema not found: %d", schema[0])
+		}
+	}
+
+	go func() {
+		<-signalChan
+
+		e.Schema[index].Commands.Quit()
+		os.Exit(0)
+	}()
+
+	if err := e.Schema[index].Start(); err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func (e *Eletrize) startAll(signalChan <-chan os.Signal) {
+	var (
+		wg sync.WaitGroup
+		mu sync.Mutex
+
+		subprocesses []*exec.Cmd
+		exitSignal   atomic.Bool
+	)
+
+	go func() {
+		<-signalChan
+
+		exitSignal.Store(true)
+
+		for index := range subprocesses {
+			_ = command.KillProcess(subprocesses[index])
+		}
+
+		os.Exit(0)
+	}()
 
 	for i := 0; i < len(e.Schema); i++ {
 		wg.Add(1)
 
 		go func(index int) {
+			defer wg.Done()
+
 			args := make([]string, 0, len(os.Args))
 
 			if len(os.Args) > 1 {
@@ -126,31 +187,19 @@ func (e *Eletrize) Start(schema ...uint16) {
 				log.Fatalf("PTY: %v", err)
 			}
 
+			mu.Lock()
+			subprocesses = append(subprocesses, cmd)
+			mu.Unlock()
+
 			defer func() { _ = ptmx.Close() }()
 
-			go func() {
-				if _, err := io.Copy(os.Stdout, ptmx); err != nil {
-					log.Fatalf("Error copying stdout: %v", err)
-				}
-			}()
+			_, _ = io.Copy(os.Stdout, ptmx)
 
-			cmd.Wait()
+			if err := cmd.Wait(); err != nil && !exitSignal.Load() {
+				output.Pushf(output.LabelEletrize, "SCHEMA %d FINISHED: %s\n", index+1, err)
+			}
 		}(i)
 	}
 
 	wg.Wait()
-}
-
-func (e *Eletrize) StartFromSchema(schema uint16) error {
-	index := schema - 1
-
-	if int(index) >= len(e.Schema) {
-		return fmt.Errorf("schema not found: %d", schema)
-	}
-
-	if err := e.Schema[index].Start(); err != nil {
-		log.Fatalln(err)
-	}
-
-	return nil
 }
