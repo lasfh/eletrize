@@ -1,32 +1,25 @@
 package environments
 
 import (
-	"bufio"
-	"fmt"
 	"log"
-	"os"
-	"strings"
 )
 
 type Envs map[string]string
 
 // Variables returns a slice of strings representing the key-value pairs
-// in the 'e' map as environment variable strings. Trims whitespace from values
-// and logs an error if a value is empty. Each element in the returned slice
+// in the 'e' map as environment variable strings. Each element in the returned slice
 // has the format "key=value".
 //
 // Returns:
 //   - A slice of strings containing the formatted environment variable strings.
 func (e Envs) Variables() []string {
-	vars := make([]string, 0, len(e))
+	vars := make([]string, len(e))
 
+	i := 0
 	for key, value := range e {
-		value = strings.TrimSpace(value)
-		if value == "" {
-			log.Fatalf("env: value is empty for %s", key)
-		}
+		vars[i] = key + "=" + value
 
-		vars = append(vars, key+"="+value)
+		i++
 	}
 
 	return vars
@@ -57,7 +50,7 @@ func (e Envs) IfNotExistAdd(envs Envs) {
 // Parameters:
 //   - filename: The path to the environment file to be read and merged.
 func (e Envs) ReadEnvFileAndMerge(filename string) {
-	vars, err := ReadEnvFile(filename)
+	vars, err := ReadDotEnv(filename)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -65,49 +58,4 @@ func (e Envs) ReadEnvFileAndMerge(filename string) {
 	for key, value := range vars {
 		e[key] = value
 	}
-}
-
-// ReadEnvFile reads key-value pairs from an environment file specified by the 'filename'
-// parameter. It parses the content of the file, extracting lines in the format "key=value".
-// Lines starting with '#' are treated as comments and are ignored. The function returns
-// a map of key-value pairs representing the environment variables read from the file.
-// If there is any issue opening the file or parsing its content, an error is returned.
-//
-// Parameters:
-//   - filename: The path to the environment file to be read.
-//
-// Returns:
-//   - A map containing the parsed environment variables.
-//   - An error if there is a problem opening the file or parsing its content.
-func ReadEnvFile(filename string) (Envs, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("env_file: %w", err)
-	}
-
-	defer file.Close()
-
-	vars := make(Envs)
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Ignorar linhas em branco e comentários
-		if line != "" && !strings.HasPrefix(line, "#") {
-			parts := strings.SplitN(line, "=", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				value := strings.TrimSpace(parts[1])
-
-				vars[key] = value
-			}
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("env_file: %w", err)
-	}
-
-	return vars, nil
 }
