@@ -1,4 +1,5 @@
-//go:build !windows && !darwin
+//go:build darwin
+// +build darwin
 
 package command
 
@@ -10,8 +11,7 @@ import (
 func startProcess(name string, arg ...string) *exec.Cmd {
 	cmd := exec.Command(name, arg...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid:   true,
-		Pdeathsig: syscall.SIGKILL,
+		Setpgid: true,
 	}
 
 	return cmd
