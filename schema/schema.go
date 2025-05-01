@@ -49,8 +49,13 @@ func (s *Schema) Start() error {
 
 	labelWatcher := output.LabelWatcher.Sub(s.Label)
 
-	return w.WatcherEvents(func(event fsnotify.Event) {
-		output.Pushf(labelWatcher, "MODIFIED FILE: %s\n", event.Name)
+	return w.WatcherEvents(func(event fsnotify.Event, isDir bool) {
+		fileType := "FILE"
+		if isDir {
+			fileType = "DIR"
+		}
+
+		output.Pushf(labelWatcher, "%s %s: %s\n", event.Op.String(), fileType, event.Name)
 
 		s.Commands.SendEvent()
 	})

@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -115,7 +116,7 @@ func (w *Watcher) Close() error {
 	return w.notify.Close()
 }
 
-func (w *Watcher) WatcherEvents(watcherFunc func(event fsnotify.Event)) error {
+func (w *Watcher) WatcherEvents(notifyEvent func(event fsnotify.Event, isDir bool)) error {
 	for {
 		select {
 		case event, ok := <-w.notify.Events:
@@ -123,15 +124,21 @@ func (w *Watcher) WatcherEvents(watcherFunc func(event fsnotify.Event)) error {
 				continue
 			}
 
-			if (event.Op&fsnotify.Create == fsnotify.Create || fsnotify.Rename == event.Op&fsnotify.Rename) && isDir(event.Name) {
-				if !w.options.MatchesExcludedPath(event.Name) {
-					_ = w.notify.Add(event.Name)
-				}
-			}
+			if !event.Has(fsnotify.Chmod) {
+				if (event.Op&fsnotify.Create == fsnotify.Create) && isDir(event.Name) {
+					if !w.options.MatchesExcludedPath(event.Name) {
+						_ = w.notify.Add(event.Name)
 
-			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
+						if !IsDirEmpty(event.Name) {
+							notifyEvent(event, true)
+						}
+					}
+
+					continue
+				}
+
 				if w.options.MatchesExtensions(event.Name) {
-					watcherFunc(event)
+					notifyEvent(event, false)
 				}
 			}
 		case err := <-w.notify.Errors:
@@ -157,4 +164,17 @@ func isPathOrSubpath(target string, paths []string) bool {
 	}
 
 	return false
+}
+
+func IsDirEmpty(path string) bool {
+	dir, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+
+	defer dir.Close()
+
+	_, err = dir.Readdirnames(1)
+
+	return err == io.EOF
 }
