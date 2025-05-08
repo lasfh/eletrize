@@ -108,16 +108,26 @@ func (c *Commands) ifPresentRunBuild() error {
 
 func (c *Commands) cancelProcesses() {
 	if err := c.ifPresentRunBuild(); err != nil {
+		for i := range c.Run {
+			if c.Run[i].quitHandler != nil {
+				c.Run[i].quitHandler()
+			}
+		}
+
 		return
 	}
 
 	for i := range c.Run {
-		c.Run[i].eventKill <- struct{}{}
+		c.Run[i].event <- struct{}{}
 	}
 }
 
 func (c *Commands) startProcesses() {
 	if err := c.ifPresentRunBuild(); err != nil {
+		for i := range c.Run {
+			c.Run[i].waitToStart()
+		}
+
 		return
 	}
 

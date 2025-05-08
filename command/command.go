@@ -13,7 +13,7 @@ import (
 
 type Command struct {
 	Envs        environments.Envs `json:"envs" yaml:"envs"`
-	eventKill   chan struct{}
+	event       chan struct{}
 	quitHandler func()
 	Method      string   `json:"method" yaml:"method"`
 	EnvFile     string   `json:"env_file" yaml:"env_file"`
@@ -41,7 +41,7 @@ func (c *Command) prepareCommand(envs environments.Envs) {
 		c.Envs.ReadEnvFileAndMerge(c.EnvFile)
 	}
 
-	c.eventKill = make(chan struct{})
+	c.event = make(chan struct{})
 }
 
 func (c *Command) startProcess() error {
@@ -63,9 +63,17 @@ func (c *Command) startProcess() error {
 	return cmd.Wait()
 }
 
+func (c *Command) waitToStart() {
+	go func() {
+		<-c.event
+
+		c.startProcess()
+	}()
+}
+
 func (c *Command) watchEventKill(cmd *exec.Cmd) {
 	go func() {
-		<-c.eventKill
+		<-c.event
 
 		if err := KillProcess(cmd); err != nil {
 			output.Pushf(output.LabelEletrize, "ERROR MESSAGE WHEN KILLING PROCESS: %s\n", err)
