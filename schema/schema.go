@@ -27,8 +27,11 @@ func (s *Schema) Start() error {
 		}
 	}
 
-	if s.EnvFile != "" && s.Envs == nil {
-		s.Envs = make(environments.Envs)
+	if s.EnvFile != "" {
+		if s.Envs == nil {
+			s.Envs = make(environments.Envs)
+		}
+
 		s.Envs.ReadEnvFileAndMerge(s.EnvFile)
 	}
 
