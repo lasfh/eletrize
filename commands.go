@@ -49,6 +49,21 @@ func execute() error {
 				os.Exit(0)
 			}
 
+			if eletrize.launch {
+				fmt.Printf("eletrize: using default schema 1\n\n")
+				fmt.Println(".vscode/launch.json:")
+
+				for index, schema := range eletrize.Schema {
+					fmt.Printf("\t %d -> %s\n", index+1, schema.Label.Label)
+				}
+
+				fmt.Println("\nto use a specific schema:")
+				fmt.Printf("\teletrize --schema N\n\n")
+
+				eletrize.Start(1)
+				os.Exit(0)
+			}
+
 			eletrize.Start()
 		},
 	}

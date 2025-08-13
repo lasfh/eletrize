@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -23,6 +24,7 @@ import (
 )
 
 type Eletrize struct {
+	launch bool
 	Schema []schema.Schema `json:"schema" yaml:"schema"`
 }
 
@@ -45,6 +47,14 @@ func newEletrizeFromDirectory(path string) (*Eletrize, error) {
 	if err != nil {
 		if isGoProject(dirs) {
 			return runGoProject(path)
+		}
+
+		if eletrize, err := runLaunchVSCode(path, 0); err == nil || !errors.Is(err, ErrNoLaunchDetected) {
+			if err != nil {
+				return nil, err
+			}
+
+			return eletrize, nil
 		}
 
 		return nil, err

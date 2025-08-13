@@ -109,11 +109,54 @@ schema:
 
 ---
 
+## 🔧 VSCode Launch Configuration
+
+Eletrize can automatically detect and use VSCode launch configurations from `.vscode/launch.json`. This feature allows you to leverage your existing VSCode debug configurations for live reloading.
+
+To use VSCode launch detection:
+
+```bash
+eletrize
+```
+
+Eletrize will automatically detect:
+
+* Go launch configurations with `"type": "go"`, `"request": "launch"`, and `"mode": "auto"`
+* Program path (supports `${workspaceFolder}` variable)
+* Environment variables and environment files
+* Command line arguments
+
+**Example `.vscode/launch.json`:**
+
+```json
+{
+    "configurations": [
+        {
+            "name": "Launch Server",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/server",
+            "args": ["--port", "8080"],
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "DEBUG": "true"
+            }
+        }
+    ]
+}
+```
+
+This configuration will be automatically converted to watch `.go` files and run the server with live reloading.
+
+---
+
 ## 🧰 Additional Features
 
 * **Multi-directory watching**: Define multiple schemas to monitor different parts of your project.
 * **Language-agnostic support**: While optimized for Go, Eletrize can be configured for other languages.
 * **Advanced customization**: Combine extensions, commands, and environment variables to tailor Eletrize to your project.
+* **VSCode integration**: Automatically detect and use VSCode launch configurations for seamless development workflow.
 
 ---
 
