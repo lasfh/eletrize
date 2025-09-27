@@ -45,7 +45,7 @@ func (c *Commands) SendEvent() {
 }
 
 func (c *Commands) Quit() {
-	if c.Build.quitHandler != nil {
+	if c.Build != nil && c.Build.quitHandler != nil {
 		c.Build.quitHandler()
 	}
 
