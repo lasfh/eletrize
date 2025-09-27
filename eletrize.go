@@ -22,6 +22,7 @@ import (
 	"github.com/lasfh/eletrize/command"
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
+	"github.com/lasfh/eletrize/vscode"
 )
 
 type Eletrize struct {
@@ -50,7 +51,7 @@ func newEletrizeFromDirectory(path string) (*Eletrize, error) {
 			return runGoProject(path)
 		}
 
-		if eletrize, err := runLaunchVSCode(path); err == nil || !errors.Is(err, ErrNoLaunchDetected) {
+		if eletrize, err := loadVSCodeLaunch(path); err == nil || !errors.Is(err, vscode.ErrNoLaunchDetected) {
 			if err != nil {
 				return nil, err
 			}

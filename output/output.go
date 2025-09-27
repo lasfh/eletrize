@@ -112,52 +112,6 @@ func (l *Label) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (l *Label) NewLabel(label *Label) *Label {
-	if (l == nil || l.Label == "") && (label == nil || label.Label == "") {
-		return nil
-	}
-
-	if l == nil || l.Label == "" {
-		if label.Color == nil {
-			label.Color = color.New(
-				color.FgGreen,
-			)
-		}
-
-		return label
-	}
-
-	if label == nil || label.Label == "" {
-		if l.Color == nil {
-			l.Color = color.New(
-				color.FgGreen,
-			)
-		}
-
-		return l
-	}
-
-	if label.Label != "" {
-		label.Label = l.Label + " - " + label.Label
-	} else {
-		label.Label = l.Label
-	}
-
-	if label.Color == nil {
-		if l.Color == nil {
-			label.Color = color.New(
-				color.FgGreen,
-			)
-
-			return label
-		}
-
-		label.Color = l.Color
-	}
-
-	return label
-}
-
 type DefaultLabel struct {
 	Label
 }
