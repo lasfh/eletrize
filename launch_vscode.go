@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"os"
 	"path"
 	"path/filepath"
@@ -140,6 +141,11 @@ func runLaunchVSCode(currentDir string) (*Eletrize, error) {
 			}
 		}
 
+		customName := fmt.Sprintf(
+			"./__eletrize_bin%d",
+			rand.Uint32(),
+		)
+
 		eletrize.Schema = append(eletrize.Schema, schema.Schema{
 			Label: &output.Label{
 				Label: config.Name,
@@ -156,20 +162,15 @@ func runLaunchVSCode(currentDir string) (*Eletrize, error) {
 			Commands: command.Commands{
 				Build: &command.Command{
 					Method: "go",
-					Args:   []string{"build", name},
+					Args:   []string{"build", "-o", customName, name},
 				},
 				Run: []command.Command{
 					{
-						Method: fmt.Sprintf(
-							"./%s",
-							strings.TrimSuffix(
-								name,
-								filepath.Ext(name),
-							),
-						),
-						Args: config.Args,
+						Method: customName,
+						Args:   config.Args,
 					},
 				},
+				Clean: []string{customName},
 			},
 		})
 	}

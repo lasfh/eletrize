@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/lasfh/eletrize/environments"
@@ -17,6 +18,7 @@ var (
 type Commands struct {
 	Build                *Command  `json:"build" yaml:"build"`
 	Run                  []Command `json:"run" yaml:"run"`
+	Clean                []string  `json:"-"`
 	debounceEventHandler func()
 	labelBuild           *output.Label
 }
@@ -51,6 +53,10 @@ func (c *Commands) Quit() {
 		if c.Run[i].quitHandler != nil {
 			c.Run[i].quitHandler()
 		}
+	}
+
+	for i := range c.Clean {
+		_ = os.Remove(c.Clean[i])
 	}
 }
 

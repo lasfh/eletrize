@@ -54,6 +54,8 @@ func runGoProject(path string) (*Eletrize, error) {
 		return nil, err
 	}
 
+	method := fmt.Sprintf("./%s", filename)
+
 	eletrize := Eletrize{
 		Schema: []schema.Schema{
 			{
@@ -71,9 +73,10 @@ func runGoProject(path string) (*Eletrize, error) {
 					},
 					Run: []command.Command{
 						{
-							Method: fmt.Sprintf("./%s", filename),
+							Method: method,
 						},
 					},
+					Clean: []string{method},
 				},
 			},
 		},
