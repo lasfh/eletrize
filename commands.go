@@ -7,18 +7,17 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/lasfh/eletrize/command"
 	"github.com/lasfh/eletrize/output"
 	"github.com/lasfh/eletrize/schema"
 	"github.com/lasfh/eletrize/watcher"
+	"github.com/spf13/cobra"
 )
 
 var version string
 
 func execute() error {
-	var schema uint16
+	var schema []uint
 
 	rootCmd := &cobra.Command{
 		Use:   "eletrize [filename]",
@@ -44,8 +43,8 @@ func execute() error {
 				os.Exit(1)
 			}
 
-			if schema > 0 {
-				eletrize.Start(schema)
+			if len(schema) > 0 {
+				eletrize.Start(args, schema...)
 				os.Exit(0)
 			}
 
@@ -60,15 +59,15 @@ func execute() error {
 				fmt.Println("\nto use a specific schema:")
 				fmt.Printf("\teletrize --schema N\n\n")
 
-				eletrize.Start(1)
+				eletrize.StartOne()
 				os.Exit(0)
 			}
 
-			eletrize.Start()
+			eletrize.Start(args)
 		},
 	}
 
-	rootCmd.Flags().Uint16VarP(&schema, "schema", "s", 0, "Execute a specific schema")
+	rootCmd.Flags().UintSliceVarP(&schema, "schema", "s", []uint{}, "Execute a specific schema")
 	rootCmd.AddCommand(
 		runCommand(),
 		versionCommand(),
@@ -145,7 +144,7 @@ func runCommand() *cobra.Command {
 				},
 			}
 
-			eletrize.Start()
+			eletrize.StartOne()
 		},
 	}
 

@@ -78,7 +78,7 @@ func readJSONFileWithComments(r io.Reader) ([]byte, error) {
 	return content.Bytes(), nil
 }
 
-func runLaunchVSCode(currentDir string, index int64) (*Eletrize, error) {
+func runLaunchVSCode(currentDir string) (*Eletrize, error) {
 	filename := filepath.Join(currentDir, ".vscode", "launch.json")
 
 	info, err := os.Stat(filename)
@@ -167,7 +167,7 @@ func runLaunchVSCode(currentDir string, index int64) (*Eletrize, error) {
 								filepath.Ext(name),
 							),
 						),
-						Args: launch.Configurations[index].Args,
+						Args: config.Args,
 					},
 				},
 			},

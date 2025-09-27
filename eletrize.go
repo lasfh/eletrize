@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -49,7 +50,7 @@ func newEletrizeFromDirectory(path string) (*Eletrize, error) {
 			return runGoProject(path)
 		}
 
-		if eletrize, err := runLaunchVSCode(path, 0); err == nil || !errors.Is(err, ErrNoLaunchDetected) {
+		if eletrize, err := runLaunchVSCode(path); err == nil || !errors.Is(err, ErrNoLaunchDetected) {
 			if err != nil {
 				return nil, err
 			}
@@ -123,23 +124,31 @@ func loadAndDecodeFile(path string) (*Eletrize, error) {
 	return &eletrize, nil
 }
 
-func (e *Eletrize) Start(schema ...uint16) {
+func (e *Eletrize) StartOne(schema ...uint) {
+	if len(schema) == 0 {
+		e.Start(nil, 1)
+	}
+
+	e.Start(nil, schema[:1]...)
+}
+
+func (e *Eletrize) Start(args []string, onlySchema ...uint) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	if schema == nil && len(e.Schema) > 1 {
-		e.startAll(signalChan)
+	if (len(onlySchema) == 0 || len(onlySchema) > 1) && len(e.Schema) > 1 {
+		e.startMany(signalChan, args, onlySchema...)
 
 		return
 	}
 
-	var index uint16
+	var index uint
 
-	if schema != nil {
-		index = schema[0] - 1
+	if len(onlySchema) > 0 {
+		index = onlySchema[0] - 1
 
 		if int(index) >= len(e.Schema) {
-			log.Fatalf("schema not found: %d", schema[0])
+			log.Fatalf("schema not found: %d", onlySchema[0])
 		}
 	}
 
@@ -155,7 +164,7 @@ func (e *Eletrize) Start(schema ...uint16) {
 	}
 }
 
-func (e *Eletrize) startAll(signalChan <-chan os.Signal) {
+func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySchema ...uint) {
 	var (
 		wg sync.WaitGroup
 		mu sync.Mutex
@@ -177,16 +186,14 @@ func (e *Eletrize) startAll(signalChan <-chan os.Signal) {
 	}()
 
 	for i := 0; i < len(e.Schema); i++ {
+		if len(onlySchema) > 0 && !slices.Contains(onlySchema, uint(i+1)) {
+			continue
+		}
+
 		wg.Add(1)
 
-		go func(index int) {
+		go func(index int, args []string) {
 			defer wg.Done()
-
-			args := make([]string, 0, len(os.Args))
-
-			if len(os.Args) > 1 {
-				args = append(args, os.Args[1:]...)
-			}
 
 			args = append(args, fmt.Sprintf("--schema=%d", index+1))
 
@@ -208,7 +215,7 @@ func (e *Eletrize) startAll(signalChan <-chan os.Signal) {
 			if err := cmd.Wait(); err != nil && !exitSignal.Load() {
 				output.Pushf(output.LabelEletrize, "SCHEMA %d FINISHED: %s\n", index+1, err)
 			}
-		}(i)
+		}(i, args)
 	}
 
 	wg.Wait()
