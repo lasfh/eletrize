@@ -29,10 +29,19 @@ type pathLaunch string
 
 func (p pathLaunch) path() string {
 	if after, ok := strings.CutPrefix(string(p), "${workspaceFolder}"); ok {
-		return strings.TrimPrefix(after, "/")
+		return "./" + strings.TrimPrefix(after, "/")
 	}
 
 	return string(p)
+}
+
+func (p pathLaunch) workdir() string {
+	path := p.path()
+	if filepath.Ext(path) == "" {
+		return path
+	}
+
+	return filepath.Dir(path)
 }
 
 func (p pathLaunch) isValid() bool {
@@ -42,8 +51,8 @@ func (p pathLaunch) isValid() bool {
 
 func (p pathLaunch) name() string {
 	name := filepath.Base(string(p))
-	if name == "." {
-		name = ""
+	if filepath.Ext(name) == "" {
+		return "."
 	}
 
 	return name
@@ -56,8 +65,17 @@ type configuration struct {
 	Mode    string            `json:"mode"`
 	Program pathLaunch        `json:"program"`
 	Args    []string          `json:"args"`
+	CWD     pathLaunch        `json:"cwd"`
 	EnvFile pathLaunch        `json:"envFile"`
 	Env     map[string]string `json:"env"`
+}
+
+func (c configuration) cwd() string {
+	if c.CWD != "" {
+		return c.CWD.path()
+	}
+
+	return c.Program.workdir()
 }
 
 func (c configuration) isValid() bool {
@@ -75,8 +93,7 @@ func (c configuration) Schema(workspaceDir string) (schema.Schema, bool) {
 		return schema.Schema{}, false
 	}
 
-	program := c.Program.path()
-	workdir := filepath.Dir(program)
+	workdir := c.cwd()
 	name := c.Program.name()
 
 	var envFile string
