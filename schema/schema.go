@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"os"
 
 	"github.com/fsnotify/fsnotify"
@@ -20,7 +21,7 @@ type Schema struct {
 	Watcher  watcher.Options   `json:"watcher" yaml:"watcher"`
 }
 
-func (s *Schema) Start() error {
+func (s *Schema) Start(ctx context.Context) error {
 	if s.Workdir != "" {
 		if err := os.Chdir(s.Workdir); err != nil {
 			return err
@@ -52,7 +53,7 @@ func (s *Schema) Start() error {
 
 	labelWatcher := output.LabelWatcher.Sub(s.Label)
 
-	return w.WatcherEvents(func(event fsnotify.Event, isDir bool) {
+	return w.WatcherEvents(ctx, func(event fsnotify.Event, isDir bool) {
 		fileType := "FILE"
 		if isDir {
 			fileType = "DIR"

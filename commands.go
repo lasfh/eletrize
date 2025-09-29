@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -25,8 +24,13 @@ func execute() error {
 		Long: `Eletrize is a live reload utility designed for Go projects and generic applications. 
 		It monitors changes in the specified directory and automatically triggers a reload, allowing for a dynamic and efficient development workflow.
 		Specify the [filename] argument to define the configuration file for Eletrize.`,
-		Args: cobra.MaximumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Args:          cobra.MaximumNArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return lock()
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
 				eletrize *Eletrize
 				err      error
@@ -39,13 +43,11 @@ func execute() error {
 			}
 
 			if err != nil {
-				fmt.Printf("eletrize: %s\n", err.Error())
-				os.Exit(1)
+				return err
 			}
 
 			if len(schema) > 0 {
-				eletrize.Start(args, schema...)
-				os.Exit(0)
+				return eletrize.Start(args, schema...)
 			}
 
 			if eletrize.launch {
@@ -59,11 +61,10 @@ func execute() error {
 				fmt.Println("\nto use a specific schema:")
 				fmt.Printf("\teletrize --schema N\n\n")
 
-				eletrize.StartOne()
-				os.Exit(0)
+				return eletrize.StartOne()
 			}
 
-			eletrize.Start(args)
+			return eletrize.Start(args)
 		},
 	}
 
@@ -92,7 +93,7 @@ func runCommand() *cobra.Command {
 		Long: `The “run” command allows you to execute a command directly without the need for a configuration file.
 		You can include optional [run] and [build] arguments to customize the build process and specify the command to run.`,
 		Args: cobra.RangeArgs(1, 2),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
 				build *command.Command
 				run   command.Command
@@ -144,7 +145,7 @@ func runCommand() *cobra.Command {
 				},
 			}
 
-			eletrize.StartOne()
+			return eletrize.StartOne()
 		},
 	}
 

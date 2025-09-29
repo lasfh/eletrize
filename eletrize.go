@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -125,22 +126,20 @@ func loadAndDecodeFile(path string) (*Eletrize, error) {
 	return &eletrize, nil
 }
 
-func (e *Eletrize) StartOne(schema ...uint) {
+func (e *Eletrize) StartOne(schema ...uint) error {
 	if len(schema) == 0 {
-		e.Start(nil, 1)
+		return e.Start(nil, 1)
 	}
 
-	e.Start(nil, schema[:1]...)
+	return e.Start(nil, schema[:1]...)
 }
 
-func (e *Eletrize) Start(args []string, onlySchema ...uint) {
+func (e *Eletrize) Start(args []string, onlySchema ...uint) error {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	if (len(onlySchema) == 0 || len(onlySchema) > 1) && len(e.Schema) > 1 {
-		e.startMany(signalChan, args, onlySchema...)
-
-		return
+		return e.startMany(signalChan, args, onlySchema...)
 	}
 
 	var index uint
@@ -149,23 +148,35 @@ func (e *Eletrize) Start(args []string, onlySchema ...uint) {
 		index = onlySchema[0] - 1
 
 		if int(index) >= len(e.Schema) {
-			log.Fatalf("schema not found: %d", onlySchema[0])
+			return fmt.Errorf("schema not found: %d", onlySchema[0])
 		}
 	}
+
+	ctx, cancel := context.WithCancel(
+		context.Background(),
+	)
+
+	defer cancel()
 
 	go func() {
 		<-signalChan
 
 		e.Schema[index].Commands.Quit()
-		os.Exit(0)
+		cancel()
 	}()
 
-	if err := e.Schema[index].Start(); err != nil {
-		log.Fatalln(err)
+	if err := e.Schema[index].Start(ctx); err != nil {
+		return err
 	}
+
+	return nil
 }
 
-func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySchema ...uint) {
+func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySchema ...uint) error {
+	if err := os.Setenv("ELETRIZE_SUB", "1"); err != nil {
+		return err
+	}
+
 	var (
 		wg sync.WaitGroup
 		mu sync.Mutex
@@ -182,8 +193,6 @@ func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySch
 		for index := range subprocesses {
 			_ = command.KillProcess(subprocesses[index])
 		}
-
-		os.Exit(0)
 	}()
 
 	for i := 0; i < len(e.Schema); i++ {
@@ -220,4 +229,6 @@ func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySch
 	}
 
 	wg.Wait()
+
+	return nil
 }

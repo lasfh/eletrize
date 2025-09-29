@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"context"
 	"io"
 	"io/fs"
 	"os"
@@ -116,7 +117,10 @@ func (w *Watcher) Close() error {
 	return w.notify.Close()
 }
 
-func (w *Watcher) WatcherEvents(notifyEvent func(event fsnotify.Event, isDir bool)) error {
+func (w *Watcher) WatcherEvents(
+	ctx context.Context,
+	notifyEvent func(event fsnotify.Event, isDir bool),
+) error {
 	for {
 		select {
 		case event, ok := <-w.notify.Events:
@@ -143,6 +147,8 @@ func (w *Watcher) WatcherEvents(notifyEvent func(event fsnotify.Event, isDir boo
 			}
 		case err := <-w.notify.Errors:
 			return err
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
