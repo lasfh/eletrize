@@ -25,7 +25,7 @@ type Options struct {
 	Recursive     bool     `json:"recursive" yaml:"recursive"`
 }
 
-func (o *Options) MatchesExcludedPath(name string) bool {
+func (o *Options) matchesExcludedPath(name string) bool {
 	if o.ExcludedPaths == nil {
 		return false
 	}
@@ -38,7 +38,7 @@ func (o *Options) MatchesExcludedPath(name string) bool {
 	return isPathOrSubpath(name, o.ExcludedPaths)
 }
 
-func (o *Options) MatchesExtensions(path string) bool {
+func (o *Options) matchesExtensions(path string) bool {
 	if len(o.Extensions) == 0 {
 		return true
 	}
@@ -103,7 +103,7 @@ func (w *Watcher) getDirectories(root string) (files []string, err error) {
 			return err
 		}
 
-		if info.IsDir() && !w.options.MatchesExcludedPath(path) {
+		if info.IsDir() && !w.options.matchesExcludedPath(path) {
 			files = append(files, path)
 		}
 
@@ -130,10 +130,10 @@ func (w *Watcher) WatcherEvents(
 
 			if !event.Has(fsnotify.Chmod) {
 				if (event.Op&fsnotify.Create == fsnotify.Create) && isDir(event.Name) {
-					if !w.options.MatchesExcludedPath(event.Name) {
+					if !w.options.matchesExcludedPath(event.Name) {
 						_ = w.notify.Add(event.Name)
 
-						if !IsDirEmpty(event.Name) {
+						if !isDirEmpty(event.Name) {
 							notifyEvent(event, true)
 						}
 					}
@@ -141,7 +141,7 @@ func (w *Watcher) WatcherEvents(
 					continue
 				}
 
-				if w.options.MatchesExtensions(event.Name) {
+				if w.options.matchesExtensions(event.Name) {
 					notifyEvent(event, false)
 				}
 			}
@@ -164,7 +164,11 @@ func isDir(name string) bool {
 
 func isPathOrSubpath(target string, paths []string) bool {
 	for _, dir := range paths {
-		if strings.HasPrefix(target, dir) {
+		if target == dir {
+			return true
+		}
+
+		if strings.HasPrefix(target, dir+string(os.PathSeparator)) {
 			return true
 		}
 	}
@@ -172,7 +176,7 @@ func isPathOrSubpath(target string, paths []string) bool {
 	return false
 }
 
-func IsDirEmpty(path string) bool {
+func isDirEmpty(path string) bool {
 	dir, err := os.Open(path)
 	if err != nil {
 		return false
