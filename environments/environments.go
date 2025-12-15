@@ -1,9 +1,5 @@
 package environments
 
-import (
-	"log"
-)
-
 type Envs map[string]string
 
 // Variables returns a slice of strings representing the key-value pairs
@@ -44,18 +40,22 @@ func (e Envs) IfNotExistAdd(envs Envs) {
 // the 'filename' parameter and merges them into the 'e' map. New entries are added
 // and existing ones are updated. The environment file is expected to contain lines
 // in the format "key=value". Lines starting with '#' are treated as comments and
-// are ignored. If there is any issue reading the file or parsing its content, the
-// method logs a Fatal.
+// are ignored.
 //
 // Parameters:
 //   - filename: The path to the environment file to be read and merged.
-func (e Envs) ReadEnvFileAndMerge(filename string) {
+//
+// Returns:
+//   - error: An error if the file cannot be read or parsed, or nil otherwise.
+func (e Envs) ReadEnvFileAndMerge(filename string) error {
 	vars, err := ReadDotEnv(filename)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	for key, value := range vars {
 		e[key] = value
 	}
+
+	return nil
 }

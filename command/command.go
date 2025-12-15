@@ -28,7 +28,7 @@ func (c *Command) isValidCommand() error {
 	return nil
 }
 
-func (c *Command) prepareCommand(envs environments.Envs) {
+func (c *Command) prepareCommand(envs environments.Envs) error {
 	if c.Envs == nil && (envs != nil || c.EnvFile != "") {
 		c.Envs = make(environments.Envs)
 	}
@@ -38,10 +38,14 @@ func (c *Command) prepareCommand(envs environments.Envs) {
 	}
 
 	if c.EnvFile != "" {
-		c.Envs.ReadEnvFileAndMerge(c.EnvFile)
+		if err := c.Envs.ReadEnvFileAndMerge(c.EnvFile); err != nil {
+			return err
+		}
 	}
 
 	c.event = make(chan struct{})
+
+	return nil
 }
 
 func (c *Command) startProcess() error {

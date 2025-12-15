@@ -31,7 +31,10 @@ func (c *Commands) Start(
 		return err
 	}
 
-	c.prepareCommands(envs)
+	if err := c.prepareCommands(envs); err != nil {
+		return err
+	}
+
 	c.debounceEventHandler = debounce(800*time.Millisecond, c.cancelProcesses)
 	c.labelBuild = output.LabelBuild.Sub(label)
 
@@ -80,14 +83,20 @@ func (c *Commands) isValidCommands() error {
 	return nil
 }
 
-func (c *Commands) prepareCommands(envs environments.Envs) {
+func (c *Commands) prepareCommands(envs environments.Envs) error {
 	if c.Build != nil {
-		c.Build.prepareCommand(envs)
+		if err := c.Build.prepareCommand(envs); err != nil {
+			return err
+		}
 	}
 
 	for i := range c.Run {
-		c.Run[i].prepareCommand(envs)
+		if err := c.Run[i].prepareCommand(envs); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (c *Commands) ifPresentRunBuild() error {

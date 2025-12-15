@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/fatih/color"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 type Colors map[string]color.Attribute
