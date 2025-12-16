@@ -1,4 +1,4 @@
-# ⚡ Eletrize
+# Eletrize
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/lasfh/eletrize)](https://goreportcard.com/report/github.com/lasfh/eletrize)
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 🚀 Instalação
+## Instalação
 
 Requisitos:
 
@@ -22,23 +22,25 @@ go install github.com/lasfh/eletrize@latest
 
 ---
 
-## ⚙️ Uso Básico
+## Uso Básico
 
 Execute um comando simples com monitoramento de alterações:
 
 ```bash
-eletrize run ./server "go build" --ext=.go --label="API" --env=.env
+eletrize run [run] [build] [flags]
+# Example:
+eletrize run ./server "go build -o server" --ext=.go,.mod --label="API" --env=.env
 ```
 
 Este comando:
 
-* Monitora o diretório por alterações em arquivos `.go`.
-* Executa `go build` e `./server` sempre que uma alteração é detectada.
+* Monitora o diretório por alterações em arquivos `.go` e `.mod`.
+* Executa `go build -o server` e `./server` sempre que uma alteração é detectada.
 * Utiliza as variáveis de ambiente definidas no arquivo `.env`.
 
 ---
 
-## 📁 Arquivos de Configuração
+## Arquivos de Configuração
 
 O Eletrize pode detectar automaticamente arquivos de configuração com os seguintes nomes:
 
@@ -64,7 +66,7 @@ eletrize path/eletrize.yml
 
 ---
 
-## 🧪 Executando com um Schema Específico
+## Executando com um Schema Específico
 
 Se o seu arquivo de configuração contém múltiplos schemas, você pode especificar qual deseja executar:
 
@@ -76,7 +78,7 @@ Substitua `1` pelo número correspondente ao schema desejado.
 
 ---
 
-## 📝 Exemplo de Arquivo de Configuração
+## Exemplo de Arquivo de Configuração
 
 ```yaml
 schema:
@@ -109,7 +111,7 @@ schema:
 
 ---
 
-## 🔧 Configuração do VSCode Launch
+## Configuração do VSCode Launch
 
 O Eletrize pode detectar e utilizar automaticamente as configurações de launch do VSCode a partir do arquivo `.vscode/launch.json`. Esta funcionalidade permite aproveitar suas configurações de debug existentes no VSCode para live reloading.
 
@@ -151,17 +153,30 @@ Esta configuração será automaticamente convertida para monitorar arquivos `.g
 
 ---
 
-## 🧰 Recursos Adicionais
-
-* **Monitoramento de múltiplos diretórios**: Configure vários schemas para monitorar diferentes partes do seu projeto simultaneamente.
-* **Suporte a múltiplas linguagens**: Embora otimizado para Golang, o Eletrize pode ser configurado para outras linguagens.
-* **Personalização avançada**: Combine diferentes extensões, comandos e variáveis de ambiente para adaptar o Eletrize às necessidades específicas do seu projeto.
-* **Integração com VSCode**: Detecta e utiliza automaticamente configurações de launch do VSCode para um fluxo de desenvolvimento seamless.
+### `help`
+Exibe informações de ajuda.
+```bash
+eletrize help [command]
+```
 
 ---
 
-## 📄 Licença
+## Comparativo: Eletrize vs Air
+
+Ambas as ferramentas são ótimas para live reloading, mas possuem focos diferentes:
+
+| Funcionalidade | Eletrize | Air |
+|---------|----------|-------|
+| **Suporte a Linguagens** | **Agnóstico** (Go, Rust, Node, etc) | Focado em Go |
+| **Integração VSCode** | **Nativa** (Lê `launch.json`) | Requer config manual |
+| **Configuração** | YAML, JSON (Múltiplos schemas) | TOML |
+| **Multi-pastas** | **Sim** (Pronto para Monorepo) | Limitado |
+
+**Por que escolher Eletrize?**
+Se você trabalha com múltiplas linguagens ou deseja integração zero-config com o debugger do VSCode, o Eletrize é a escolha certa.
+
+---
+
+## Licença
 
 Este projeto está licenciado sob a [Licença MIT](LICENSE).
-
----

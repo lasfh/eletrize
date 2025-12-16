@@ -1,14 +1,14 @@
-# ⚡ Eletrize
+# Eletrize
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/lasfh/eletrize)](https://goreportcard.com/report/github.com/lasfh/eletrize)
 
 **Eletrize** is a live reload tool for Go and other languages. It watches for file changes in your project and automatically runs commands, speeding up development and testing workflows.
 
-#### 📖 English | [Português](README_ptBR.md)
+#### English | [Português](README_ptBR.md)
 
 ---
 
-## 🚀 Installation
+## Installation
 
 Requirements:
 
@@ -22,23 +22,25 @@ go install github.com/lasfh/eletrize@latest
 
 ---
 
-## ⚙️ Basic Usage
+## Basic Usage
 
 Run a simple command with file watching:
 
 ```bash
-eletrize run ./server "go build" --ext=.go --label="API" --env=.env
+eletrize run [run] [build] [flags]
+# Example:
+eletrize run ./server "go build -o server" --ext=.go,.mod --label="API" --env=.env
 ```
 
 This command:
 
-* Watches the directory for changes in `.go` files.
-* Runs `go build` and `.server` when changes are detected.
+* Watches the directory for changes in `.go` and `.mod` files.
+* Runs `go build -o server` and `./server` when changes are detected.
 * Loads environment variables from the `.env` file.
 
 ---
 
-## 📁 Configuration Files
+## Configuration Files
 
 Eletrize can automatically detect configuration files named:
 
@@ -64,7 +66,7 @@ eletrize path/eletrize.yml
 
 ---
 
-## 🧪 Running a Specific Schema
+## Running a Specific Schema
 
 If your config file contains multiple schemas, you can specify one using:
 
@@ -76,7 +78,7 @@ Replace `1` with the desired schema index.
 
 ---
 
-## 📝 Configuration Example
+## Configuration Example
 
 ```yaml
 schema:
@@ -109,7 +111,7 @@ schema:
 
 ---
 
-## 🔧 VSCode Launch Configuration
+## VSCode Launch Configuration
 
 Eletrize can automatically detect and use VSCode launch configurations from `.vscode/launch.json`. This feature allows you to leverage your existing VSCode debug configurations for live reloading.
 
@@ -151,17 +153,30 @@ This configuration will be automatically converted to watch `.go` files and run 
 
 ---
 
-## 🧰 Additional Features
-
-* **Multi-directory watching**: Define multiple schemas to monitor different parts of your project.
-* **Language-agnostic support**: While optimized for Go, Eletrize can be configured for other languages.
-* **Advanced customization**: Combine extensions, commands, and environment variables to tailor Eletrize to your project.
-* **VSCode integration**: Automatically detect and use VSCode launch configurations for seamless development workflow.
+### `help`
+Display help information.
+```bash
+eletrize help [command]
+```
 
 ---
 
-## 📄 License
+## Comparison: Eletrize vs Air
+
+Both tools are great for live reloading, but they have different focuses:
+
+| Feature | Eletrize | Air |
+|---------|----------|-------|
+| **Language Support** | **Agnostic** (Go, Rust, Node, etc) | Go Focused |
+| **VSCode Integration** | **Native** (Reads `launch.json`) | Manual config required |
+| **Configuration** | YAML, JSON (Multiple schemas) | TOML |
+| **Multi-folder** | **Yes** (Monorepo readiness) | Limited |
+
+**Why choose Eletrize?**
+If you work with multiple languages or want zero-config integration with your VSCode debugger, Eletrize is the way to go.
+
+---
+
+## License
 
 This project is licensed under the [MIT License](LICENSE).
-
----
