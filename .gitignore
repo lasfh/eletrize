@@ -5,6 +5,10 @@
 *.so
 *.dylib
 
+# OS
+.DS_Store
+Thumbs.db
+
 # Test binary, built with `go test -c`
 *.test
 
