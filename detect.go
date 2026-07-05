@@ -99,7 +99,7 @@ func getBinaryNameFromGoMod(path string) (string, error) {
 
 	file, err := os.Open(goModPath)
 	if err != nil {
-		return "", fmt.Errorf("não foi possível abrir o arquivo go.mod: %w", err)
+		return "", fmt.Errorf("could not open go.mod: %w", err)
 	}
 
 	defer file.Close()
@@ -117,10 +117,10 @@ func getBinaryNameFromGoMod(path string) (string, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("erro ao ler o arquivo go.mod: %w", err)
+		return "", fmt.Errorf("failed to read go.mod: %w", err)
 	}
 
-	return "", fmt.Errorf("não foi possível encontrar a declaração de módulo no go.mod")
+	return "", fmt.Errorf("could not find the module declaration in go.mod")
 }
 
 func envFileExists(path string) (bool, error) {

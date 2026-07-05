@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -24,6 +25,7 @@ type Commands struct {
 }
 
 func (c *Commands) Start(
+	ctx context.Context,
 	label *output.Label,
 	envs environments.Envs,
 ) error {

@@ -1,23 +1,21 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
 
-	"github.com/creack/pty"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/lasfh/eletrize/command"
@@ -93,7 +91,7 @@ func NewEletrizeFromFilePath(filePath string) (*Eletrize, error) {
 
 	for index := range eletrize.Schema {
 		if eletrize.Schema[index].Workdir == "" {
-			eletrize.Schema[index].Workdir = path.Dir(filePath)
+			eletrize.Schema[index].Workdir = filepath.Dir(filePath)
 		}
 	}
 
@@ -161,15 +159,10 @@ func (e *Eletrize) Start(args []string, onlySchema ...uint) error {
 	go func() {
 		<-signalChan
 
-		e.Schema[index].Commands.Quit()
 		cancel()
 	}()
 
-	if err := e.Schema[index].Start(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return e.Schema[index].Start(ctx)
 }
 
 func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySchema ...uint) error {
@@ -182,6 +175,7 @@ func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySch
 		mu sync.Mutex
 
 		subprocesses []*exec.Cmd
+		stdios       []io.ReadWriteCloser
 		exitSignal   atomic.Bool
 	)
 
@@ -190,8 +184,26 @@ func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySch
 
 		exitSignal.Store(true)
 
+		mu.Lock()
+		defer mu.Unlock()
+
 		for index := range subprocesses {
 			_ = command.KillProcess(subprocesses[index])
+		}
+	}()
+
+	// forward stdin lines to the subprocesses (e.g. "r" for manual restart)
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+
+		for scanner.Scan() {
+			line := scanner.Text() + "\n"
+
+			mu.Lock()
+			for index := range stdios {
+				_, _ = io.WriteString(stdios[index], line)
+			}
+			mu.Unlock()
 		}
 	}()
 
@@ -202,30 +214,43 @@ func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySch
 
 		wg.Add(1)
 
-		go func(index int, args []string) {
+		go func(index int) {
 			defer wg.Done()
 
-			args = append(args, fmt.Sprintf("--schema=%d", index+1))
+			subArgs := make([]string, 0, len(args)+1)
+			subArgs = append(subArgs, args...)
+			subArgs = append(subArgs, fmt.Sprintf("--schema=%d", index+1))
 
-			cmd := exec.Command(os.Args[0], args...)
-
-			ptmx, err := pty.Start(cmd)
-			if err != nil {
-				log.Fatalf("PTY: %v", err)
-			}
+			cmd := exec.Command(os.Args[0], subArgs...)
 
 			mu.Lock()
+			if exitSignal.Load() {
+				mu.Unlock()
+
+				return
+			}
+
+			stdio, err := startSubprocess(cmd)
+			if err != nil {
+				mu.Unlock()
+
+				output.Pushf(output.LabelEletrize, "FAILED TO START SCHEMA %d: %s\n", index+1, err)
+
+				return
+			}
+
 			subprocesses = append(subprocesses, cmd)
+			stdios = append(stdios, stdio)
 			mu.Unlock()
 
-			defer func() { _ = ptmx.Close() }()
+			defer func() { _ = stdio.Close() }()
 
-			_, _ = io.Copy(os.Stdout, ptmx)
+			_, _ = io.Copy(os.Stdout, stdio)
 
 			if err := cmd.Wait(); err != nil && !exitSignal.Load() {
 				output.Pushf(output.LabelEletrize, "SCHEMA %d FINISHED: %s\n", index+1, err)
 			}
-		}(i, args)
+		}(i)
 	}
 
 	wg.Wait()

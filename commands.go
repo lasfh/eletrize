@@ -21,9 +21,10 @@ func execute() error {
 	rootCmd := &cobra.Command{
 		Use:   "eletrize [filename]",
 		Short: "Live reload tool for Go and generic projects",
-		Long: `Eletrize is a live reload utility designed for Go projects and generic applications. 
+		Long: `Eletrize is a live reload utility designed for Go projects and generic applications.
 		It monitors changes in the specified directory and automatically triggers a reload, allowing for a dynamic and efficient development workflow.
-		Specify the [filename] argument to define the configuration file for Eletrize.`,
+		Specify the [filename] argument to define the configuration file for Eletrize.
+		While running, type "r" followed by Enter to trigger a manual rebuild and restart.`,
 		Args:          cobra.MaximumNArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
