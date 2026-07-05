@@ -173,7 +173,7 @@ func (e *Eletrize) Start(args []string, onlySchema ...uint) error {
 }
 
 func (e *Eletrize) startMany(signalChan <-chan os.Signal, args []string, onlySchema ...uint) error {
-	if err := os.Setenv("ELETRIZE_SUB", "1"); err != nil {
+	if err := os.Setenv(envSub, "1"); err != nil {
 		return err
 	}
 
